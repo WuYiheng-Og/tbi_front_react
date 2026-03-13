@@ -2,6 +2,25 @@
 
 import { useState } from "react";
 
+export type PatientSummary = {
+  name: string;
+  age: string;
+  delikaiModeText: string;
+  nicoletModeText: string;
+  yldlModeText: string;
+};
+
+const nglModeLabels: Record<string, string> = {
+  "1": "一电极",
+  "2": "二电极",
+  "3": "三电极",
+  "4": "四电极",
+};
+const channelModeLabels: Record<string, string> = {
+  "1": "单通道",
+  "2": "双通道",
+};
+
 type AlertWeight = {
   ngl: string;
   dlk: string;
@@ -43,7 +62,11 @@ const initialForm: PatientForm = {
   },
 };
 
-export function PatientInfoDialog() {
+type PatientInfoDialogProps = {
+  onCompleted?: (summary: PatientSummary) => void;
+};
+
+export function PatientInfoDialog({ onCompleted }: PatientInfoDialogProps) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<PatientForm>(initialForm);
   const [buttonLabel, setButtonLabel] = useState("录入病人信息");
@@ -169,6 +192,13 @@ export function PatientInfoDialog() {
 
     setButtonLabel(`${form.name} - ${form.age}岁 - ${form.sex}`);
     setOpen(false);
+    onCompleted?.({
+      name: form.name,
+      age: form.age,
+      delikaiModeText: channelModeLabels[form.dlk] ?? "--",
+      nicoletModeText: nglModeLabels[form.ngl] ?? "--",
+      yldlModeText: channelModeLabels[form.yldl] ?? "--",
+    });
   }
 
   function handleOpen() {

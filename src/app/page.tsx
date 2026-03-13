@@ -1,51 +1,84 @@
-import { PatientInfoDialog } from "../components/patient-info-dialog";
+"use client";
 
-const metricSlots: { id: string; group: "脑电" | "脑氧" | "脑血流"; label: string }[] = [
-  { id: "eeg-1", group: "脑电", label: "脑电指标 1" },
-  { id: "eeg-2", group: "脑电", label: "脑电指标 2" },
-  { id: "eeg-3", group: "脑电", label: "脑电指标 3" },
-  { id: "eeg-4", group: "脑电", label: "脑电指标 4" },
-  { id: "nirs-1", group: "脑氧", label: "脑氧指标 1" },
-  { id: "nirs-2", group: "脑氧", label: "脑氧指标 2" },
-  { id: "cbf-1", group: "脑血流", label: "脑血流指标 1" },
-  { id: "cbf-2", group: "脑血流", label: "脑血流指标 2" },
-];
+import { BarChart2, Cpu, Monitor, UserRound } from "lucide-react";
+import { useState } from "react";
+import { PatientInfoDialog, type PatientSummary } from "../components/patient-info-dialog";
+import { EEGCard1, EEGCard2, EEGCard3, EEGCard4 } from "../components/eeg-panel";
+import { NIRSCard1, NIRSCard2 } from "../components/nirs-panel";
+import { CBFCard1, CBFCard2 } from "../components/cbf-panel";
+
+function PatientBadge({ summary }: { summary: PatientSummary }) {
+  return (
+    <div className="flex items-center gap-5 text-white">
+      {/* 左侧：头像 + 姓名 + 年龄（竖向） */}
+      <div className="flex flex-col items-center gap-1">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#0e4a5c]">
+          <UserRound className="h-6 w-6 text-[#ff7f27]" />
+        </div>
+        <span className="text-sm font-medium">{summary.name || "未知"}</span>
+        <span className="text-xs text-white/90">{summary.age || "--"}岁</span>
+      </div>
+      {/* 右侧：圆角面板，三条设备信息（橙色图标 + 白字） */}
+      <div className="rounded-lg bg-[#0d3540] px-4 py-3">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <Monitor className="h-4 w-4 shrink-0 text-[#ff7f27]" />
+            <span className="text-sm">德力凯:{summary.delikaiModeText || "--"}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Cpu className="h-4 w-4 shrink-0 text-[#ff7f27]" />
+            <span className="text-sm">尼高力:{summary.nicoletModeText || "--"}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <BarChart2 className="h-4 w-4 shrink-0 text-[#ff7f27]" />
+            <span className="text-sm">依露得力:{summary.yldlModeText || "--"}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function Home() {
+  const [patient, setPatient] = useState<PatientSummary | null>(null);
+
   return (
     <div className="flex h-full w-full flex-col bg-dashboard-bg">
       {/* 顶部 Header */}
       <header className="flex items-center justify-between border-b border-dashboard-border px-8 py-4">
-        <div>
-          <h1 className="text-xl font-semibold text-dashboard-text">多模态可视化</h1>
+        <div className="flex items-center gap-4">
+          {patient && <PatientBadge summary={patient} />}
+          {!patient && (
+            <h1 className="text-xl font-semibold text-dashboard-text">多模态可视化</h1>
+          )}
         </div>
-        <PatientInfoDialog />
+        {!patient && <PatientInfoDialog onCompleted={setPatient} />}
       </header>
 
-      {/* 主体区域：仅保留大面积可视化区域 */}
-      <main className="flex flex-1 flex-col px-8 py-6">
-        <section className="flex-1 rounded-lg border border-dashboard-border bg-dashboard-panel px-4 py-3">
+      {/* 主体区域：两列四行布局 */}
+      <main className="flex flex-1 flex-col">
+        <section className="flex-1 flex flex-col">
 
-          <div className="grid h-full grid-cols-1 gap-3 xl:grid-cols-2">
-            {metricSlots.map((metric) => (
-              <div
-                key={metric.id}
-                className="flex flex-col justify-between rounded-md border border-dashboard-border bg-dashboard-bg/60 px-3 py-2"
-              >
-                <div className="flex items-center justify-between text-[11px]">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-dashboard-muted">{metric.group}</span>
-                    <span className="text-dashboard-text">{metric.label}</span>
-                  </div>
-                  <span className="font-mono text-xs text-dashboard-accent">0.0</span>
-                </div>
-
-                <div className="mt-2 flex-1 rounded-sm border border-dashed border-dashboard-border/80 bg-dashboard-panel/40">
-                  {/* 后续在此处放置波形 / 曲线图等可视化内容 */}
-                </div>
-              </div>
-            ))}
+          {/* 脑电 - 4个指标，占 2 行 (50%) */}
+          <div className="flex-[2] grid grid-cols-2">
+            <EEGCard1 />
+            <EEGCard2 />
+            <EEGCard3 />
+            <EEGCard4 />
           </div>
+
+          {/* 脑血流 - 2个指标，占 1 行 (25%) */}
+          <div className="flex-1 grid grid-cols-2">
+            <CBFCard1 />
+            <CBFCard2 />
+          </div>
+
+          {/* 脑氧 - 2个指标，占 1 行 (25%) */}
+          <div className="flex-1 grid grid-cols-2">
+            <NIRSCard1 />
+            <NIRSCard2 />
+          </div>
+
         </section>
       </main>
     </div>
