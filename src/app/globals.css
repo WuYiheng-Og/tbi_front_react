@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* 全局背景 & 文本：与病人信息模态框保持一致 */
+  --background: #082a35;
+  --foreground: #fff8e1;
 }
 
 @theme inline {
@@ -10,17 +11,19 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* 仪表盘色板（统一到模态框风格） */
+  --color-dashboard-bg: #082a35; /* 页面主背景 */
+  --color-dashboard-panel: #082a35; /* 面板背景，与 body 一致，方便铺满 */
+  --color-dashboard-border: #2d5058; /* 细边线 */
+  --color-dashboard-text: #fff8e1; /* 主文字 */
+  --color-dashboard-muted: #9fb8c5; /* 次要说明文字 */
+  --color-dashboard-accent: #ff7f27; /* 高亮橙色 */
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
 }
