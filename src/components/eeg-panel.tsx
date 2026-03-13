@@ -1,12 +1,11 @@
 "use client";
 
-const PLOT_BG = "#1a2d3c";
-const GRID_DASHED = "#3d5a6c";
-const GRID_MAJOR = "#c4a574";
-const AXIS_TEXT = "#e2e8f0";
-const CHANNEL_TEXT = "#94a3b8";
+const PLOT_BG = "#082a35";
+const GRID_DASHED = "grey";
+const GRID_MAJOR = "#e47945";
+const AXIS_TEXT = "#7a919d";
+const LINE_COLOR = "#99dbcf";
 
-const Y_TICKS = [100, 80, 60, 40, 20, 0, -20, -40, -60, -80, -100];
 const Y_MIN = -100;
 const Y_MAX = 100;
 
@@ -15,8 +14,18 @@ const MS_PER_MINOR = 200;
 const MINORS_PER_MAJOR = 10;
 const SECONDS_PER_MAJOR = (MS_PER_MINOR * MINORS_PER_MAJOR) / 1000;
 
+const MARGIN = { top: 10, bottom: 10, left: 100, right: 0 };
+const DASHBOARD = { width: 180, height: 200, left: 0, top: -10 };
+
 const minorVertCount = (TOTAL_SECONDS * 1000) / MS_PER_MINOR;
 const majorVertCount = TOTAL_SECONDS / SECONDS_PER_MAJOR;
+
+const RBP_COLORS: Record<string, string> = {
+  δ: "#3176b7",
+  θ: "#f78000",
+  α: "#3fa116",
+  β: "#ce2820",
+};
 
 type EEGPanelCellProps = {
   channelLabel: string;
@@ -33,103 +42,152 @@ function EEGPanelCell({
   alpha = "0.0",
   beta = "0.0",
 }: EEGPanelCellProps) {
-  const paddingLeft = 36;
-  const paddingRight = 72;
-  const paddingTop = 24;
-  const paddingBottom = 20;
-  const width = 400;
-  const height = 240;
-  const plotWidth = width - paddingLeft - paddingRight;
-  const plotHeight = height - paddingTop - paddingBottom;
+  const svgWidth = 1124;
+  const svgHeight = 200;
 
-  const yToSvg = (y: number) => {
+  const chartWidth = svgWidth - MARGIN.left - MARGIN.right - DASHBOARD.width - DASHBOARD.left;
+  const chartHeight = svgHeight - MARGIN.top - MARGIN.bottom;
+
+  const chartY = (y: number) => {
     const t = (y - Y_MIN) / (Y_MAX - Y_MIN);
-    return paddingTop + (1 - t) * plotHeight;
+    return (1 - t) * chartHeight;
   };
 
   const xToSvg = (ms: number) => {
     const t = ms / (TOTAL_SECONDS * 1000);
-    return paddingLeft + t * plotWidth;
+    return MARGIN.left + t * chartWidth;
   };
 
-  return (
-    <div className="relative flex h-full w-full flex-col border-r border-b border-dashboard-border" style={{ background: PLOT_BG }}>
-      {/* 频谱功率指示器 - 右上角 2x2 */}
-      <div className="absolute right-2 top-2 z-10 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px]">
-        <span className="text-[#60a5fa]">δ {delta}</span>
-        <span className="text-[#fb923c]">θ {theta}</span>
-        <span className="text-[#4ade80]">α {alpha}</span>
-        <span className="text-[#f87171]">β {beta}</span>
-      </div>
+  const legendWidth = DASHBOARD.width;
+  const legendHeight = 100;
+  const itemWidth = legendWidth / 2;
+  const itemHeight = legendHeight / 4;
 
-      {/* 网格 + Y 轴 + X 轴时间标签 */}
+  const rbpItems = [
+    { name: "δ", value: delta },
+    { name: "θ", value: theta },
+    { name: "α", value: alpha },
+    { name: "β", value: beta },
+  ];
+
+  return (
+    <div
+      className="relative h-full w-full border-r border-b border-dashboard-border"
+      style={{ background: PLOT_BG }}
+    >
       <svg
         className="h-full w-full"
-        viewBox={`0 0 ${width} ${height}`}
+        viewBox={`0 0 ${svgWidth} ${svgHeight}`}
         preserveAspectRatio="none"
+        style={{ border: "1px solid lightgray" }}
       >
-        {/* 水平虚线网格 (对应 Y 刻度) */}
-        {Y_TICKS.map((y) => {
-          const sy = yToSvg(y);
-          return (
-            <line
+        {/* 绘图区域 */}
+        <g transform={`translate(${MARGIN.left}, ${MARGIN.top})`}>
+          {/* 水平网格线 */}
+          {[
+            100, 80, 60, 40, 20, 0, -20, -40, -60, -80, -100,
+          ].map((y) => {
+            const cy = chartY(y);
+            return (
+              <line
+                key={y}
+                x1={0}
+                y1={cy}
+                x2={chartWidth}
+                y2={cy}
+                stroke={GRID_DASHED}
+                strokeDasharray="5,2"
+                strokeWidth={0.5}
+              />
+            );
+          })}
+
+          {/* 垂直网格线 - 20ms 小格虚线 + 2s 大格实线 */}
+          {Array.from({ length: minorVertCount + 1 }, (_, i) => {
+            const ms = i * MS_PER_MINOR;
+            const x = xToSvg(ms) - MARGIN.left;
+            const isMajor = i % MINORS_PER_MAJOR === 0;
+            return (
+              <line
+                key={i}
+                x1={x}
+                y1={0}
+                x2={x}
+                y2={chartHeight}
+                stroke={isMajor ? GRID_MAJOR : GRID_DASHED}
+                strokeWidth={isMajor ? 1 : 0.5}
+                strokeDasharray={isMajor ? "0" : "5,2"}
+              />
+            );
+          })}
+
+          {/* Y 轴刻度标签 */}
+          {[100, 80, 60, 40, 20, 0, -20, -40, -60, -80, -100].map((y) => (
+            <text
               key={y}
-              x1={paddingLeft}
-              y1={sy}
-              x2={width - paddingRight}
-              y2={sy}
-              stroke={GRID_DASHED}
-              strokeWidth="0.5"
-              strokeDasharray="3 2"
-            />
-          );
-        })}
+              x={-10}
+              y={chartY(y)}
+              textAnchor="end"
+              dominantBaseline="middle"
+              fill={AXIS_TEXT}
+              fontSize="12"
+              fontFamily="system-ui, sans-serif"
+            >
+              {y}
+            </text>
+          ))}
 
-        {/* 垂直虚线 (20ms 小格) + 黄色实线 (2s 大格) */}
-        {Array.from({ length: minorVertCount + 1 }, (_, i) => {
-          const ms = i * MS_PER_MINOR;
-          const x = xToSvg(ms);
-          const isMajor = i % MINORS_PER_MAJOR === 0;
-          return (
-            <line
-              key={i}
-              x1={x}
-              y1={paddingTop}
-              x2={x}
-              y2={height - paddingBottom}
-              stroke={isMajor ? GRID_MAJOR : GRID_DASHED}
-              strokeWidth={isMajor ? 1 : 0.5}
-              strokeDasharray={isMajor ? "0" : "3 2"}
-            />
-          );
-        })}
+          
 
-        {/* Y 轴刻度标签 */}
-        {Y_TICKS.map((y) => (
+          {/* 通道标签 - 左侧边距内，避免被裁切 */}
           <text
-            key={y}
-            x={paddingLeft - 6}
-            y={yToSvg(y)}
-            textAnchor="end"
-            dominantBaseline="middle"
+            x={-MARGIN.left / 2 - 10}
+            y={chartHeight / 2}
+            textAnchor="middle"
             fill={AXIS_TEXT}
-            fontSize="10"
+            fontSize="14"
             fontFamily="system-ui, sans-serif"
           >
-            {y}
+            {channelLabel}
           </text>
-        ))}
+        </g>
 
-        
+        {/* 右侧 Dashboard 面板 */}
+        <g
+          transform={`translate(${MARGIN.left + chartWidth + DASHBOARD.left},0)`}
+        >
+          {/* 边框 */}
+          <rect
+            x={0}
+            y={0}
+            width={DASHBOARD.width}
+            height={DASHBOARD.height}
+            fill="none"
+            stroke="grey"
+            strokeWidth={3}
+          />
+
+          {/* RBP 图例 - 2x2 布局 */}
+          {rbpItems.map((item, i) => {
+            const row = Math.floor(i / 2);
+            const col = i % 2;
+            const x = col * itemWidth + itemWidth / 60;
+            const y = row * itemHeight + itemHeight / 4;
+            return (
+              <text
+                key={item.name}
+                x={x + 15}
+                y={y + 15}
+                fill={RBP_COLORS[item.name]}
+                fontSize="14"
+                fontFamily="system-ui, sans-serif"
+              >
+                {item.name}: {item.value}%
+              </text>
+            );
+          })}
+        </g>
       </svg>
-
-      {/* 通道标签 - 左下角 */}
-      <div
-        className="absolute bottom-1 left-2 z-10 text-[10px]"
-        style={{ color: CHANNEL_TEXT }}
-      >
-        {channelLabel}
-      </div>
     </div>
   );
 }
