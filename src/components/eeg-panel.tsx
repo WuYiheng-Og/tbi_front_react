@@ -1,10 +1,13 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
+
 const PLOT_BG = "#082a35";
 const GRID_DASHED = "grey";
 const GRID_MAJOR = "#e47945";
 const AXIS_TEXT = "#7a919d";
 const LINE_COLOR = "#99dbcf";
+const LINE_COLOR_OLD = "#4a5a68";
 
 const Y_MIN = -100;
 const Y_MAX = 100;
@@ -13,6 +16,9 @@ const TOTAL_SECONDS = 15;
 const MS_PER_MINOR = 200;
 const MINORS_PER_MAJOR = 10;
 const SECONDS_PER_MAJOR = (MS_PER_MINOR * MINORS_PER_MAJOR) / 1000;
+
+const SAMPLE_RATE = 60;
+const TOTAL_POINTS = TOTAL_SECONDS * SAMPLE_RATE;
 
 const MARGIN = { top: 10, bottom: 10, left: 100, right: 0 };
 const DASHBOARD = { width: 180, height: 200, left: 0, top: -10 };
@@ -27,23 +33,26 @@ const RBP_COLORS: Record<string, string> = {
   β: "#ce2820",
 };
 
-type EEGPanelCellProps = {
-  channelLabel: string;
-  delta?: string;
-  theta?: string;
-  alpha?: string;
-  beta?: string;
-};
+const CHANNELS = [
+  { key: "EEGData_F3_Ref", label: "F3-参考" },
+  { key: "EEGData_F4_Ref", label: "F4-参考" },
+  { key: "EEGData_P3_Ref", label: "P3-参考" },
+  { key: "EEGData_P4_Ref", label: "P4-参考" },
+];
 
 function EEGPanelCell({
   channelLabel,
-  delta = "0.0",
-  theta = "0.0",
-  alpha = "0.0",
-  beta = "0.0",
-}: EEGPanelCellProps) {
+  channelKey,
+  dataBuffer,
+}: {
+  channelLabel: string;
+  channelKey: string;
+  dataBuffer: Map<string, number[]>;
+}) {
   const svgWidth = 1124;
   const svgHeight = 200;
+  const newPathRef = useRef<SVGPathElement>(null);
+  const oldPathRef = useRef<SVGPathElement>(null);
 
   const chartWidth = svgWidth - MARGIN.left - MARGIN.right - DASHBOARD.width - DASHBOARD.left;
   const chartHeight = svgHeight - MARGIN.top - MARGIN.bottom;
@@ -64,11 +73,85 @@ function EEGPanelCell({
   const itemHeight = legendHeight / 4;
 
   const rbpItems = [
-    { name: "δ", value: delta },
-    { name: "θ", value: theta },
-    { name: "α", value: alpha },
-    { name: "β", value: beta },
+    { name: "δ", value: "0.0" },
+    { name: "θ", value: "0.0" },
+    { name: "α", value: "0.0" },
+    { name: "β", value: "0.0" },
   ];
+
+  useEffect(() => {
+    let currentCyclePoints: { elapsed: number; y: number }[] = [];
+    let prevCyclePoints: { elapsed: number; y: number }[] = [];
+    let cycleStartTime = performance.now();
+    const MS_PER_CYCLE = TOTAL_SECONDS * 1000;
+
+    const animate = (timestamp: number) => {
+      const buffer = dataBuffer.get(channelKey);
+      if (buffer && buffer.length > 0) {
+        const values = buffer.slice();
+        dataBuffer.set(channelKey, []);
+
+        for (const value of values) {
+          const now = performance.now();
+          const elapsed = now - cycleStartTime;
+          
+          const centerY = chartHeight / 2;
+          const normalizedValue = Math.max(-1, Math.min(1, value / 100));
+          const y = centerY - normalizedValue * centerY * 0.8;
+
+          currentCyclePoints.push({ elapsed, y });
+
+          // 检查是否需要开始新周期
+          if (elapsed >= MS_PER_CYCLE) {
+            prevCyclePoints = currentCyclePoints;
+            currentCyclePoints = [];
+            cycleStartTime = now;
+          }
+        }
+      }
+
+      // 计算当前周期已过去的时间
+      const now = performance.now();
+      const currentElapsed = now - cycleStartTime;
+      const eraseElapsed = currentElapsed;
+
+      // 绘制上一周期（灰色）- 只显示超出当前进度的部分
+      if (prevCyclePoints.length > 0) {
+        const visiblePrevPoints = prevCyclePoints.filter((p) => p.elapsed >= eraseElapsed);
+        if (visiblePrevPoints.length >= 2) {
+          const d = visiblePrevPoints
+            .map((p, i) => {
+              const x = (p.elapsed / MS_PER_CYCLE) * chartWidth;
+              return `${i === 0 ? "M" : "L"} ${x.toFixed(2)} ${p.y.toFixed(2)}`;
+            })
+            .join(" ");
+          if (oldPathRef.current) {
+            oldPathRef.current.setAttribute("d", d);
+          }
+        } else if (oldPathRef.current) {
+          oldPathRef.current.setAttribute("d", "");
+        }
+      }
+
+      // 绘制当前周期（新数据，亮色）
+      if (currentCyclePoints.length >= 2) {
+        const d = currentCyclePoints
+          .map((p, i) => {
+            const x = (p.elapsed / MS_PER_CYCLE) * chartWidth;
+            return `${i === 0 ? "M" : "L"} ${x.toFixed(2)} ${p.y.toFixed(2)}`;
+          })
+          .join(" ");
+        if (newPathRef.current) {
+          newPathRef.current.setAttribute("d", d);
+        }
+      }
+
+      requestAnimationFrame(animate);
+    };
+
+    const animId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animId);
+  }, [channelKey, dataBuffer, chartWidth, chartHeight]);
 
   return (
     <div
@@ -79,14 +162,11 @@ function EEGPanelCell({
         className="h-full w-full"
         viewBox={`0 0 ${svgWidth} ${svgHeight}`}
         preserveAspectRatio="none"
-        style={{ border: "1px solid lightgray" }}
       >
         {/* 绘图区域 */}
         <g transform={`translate(${MARGIN.left}, ${MARGIN.top})`}>
           {/* 水平网格线 */}
-          {[
-            100, 80, 60, 40, 20, 0, -20, -40, -60, -80, -100,
-          ].map((y) => {
+          {[100, 80, 60, 40, 20, 0, -20, -40, -60, -80, -100].map((y) => {
             const cy = chartY(y);
             return (
               <line
@@ -102,7 +182,7 @@ function EEGPanelCell({
             );
           })}
 
-          {/* 垂直网格线 - 20ms 小格虚线 + 2s 大格实线 */}
+          {/* 垂直网格线 */}
           {Array.from({ length: minorVertCount + 1 }, (_, i) => {
             const ms = i * MS_PER_MINOR;
             const x = xToSvg(ms) - MARGIN.left;
@@ -137,9 +217,7 @@ function EEGPanelCell({
             </text>
           ))}
 
-          
-
-          {/* 通道标签 - 左侧边距内，避免被裁切 */}
+          {/* 通道标签 */}
           <text
             x={-MARGIN.left / 2 - 10}
             y={chartHeight / 2}
@@ -150,13 +228,30 @@ function EEGPanelCell({
           >
             {channelLabel}
           </text>
+
+          {/* EEG 旧数据 - 灰色 */}
+          <path
+            ref={oldPathRef}
+            fill="none"
+            stroke={LINE_COLOR_OLD}
+            strokeWidth={1.5}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+
+          {/* EEG 新数据 - 亮色 */}
+          <path
+            ref={newPathRef}
+            fill="none"
+            stroke={LINE_COLOR}
+            strokeWidth={1.5}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
         </g>
 
         {/* 右侧 Dashboard 面板 */}
-        <g
-          transform={`translate(${MARGIN.left + chartWidth + DASHBOARD.left},0)`}
-        >
-          {/* 边框 */}
+        <g transform={`translate(${MARGIN.left + chartWidth + DASHBOARD.left},0)`}>
           <rect
             x={0}
             y={0}
@@ -167,7 +262,6 @@ function EEGPanelCell({
             strokeWidth={3}
           />
 
-          {/* RBP 图例 - 2x2 布局 */}
           {rbpItems.map((item, i) => {
             const row = Math.floor(i / 2);
             const col = i % 2;
@@ -192,18 +286,70 @@ function EEGPanelCell({
   );
 }
 
+export function EEGCards() {
+  const [dataBuffer] = useState(() => new Map<string, number[]>());
+  const esRef = useRef<EventSource | null>(null);
+
+  useEffect(() => {
+    const buffer = dataBuffer;
+
+    for (const ch of CHANNELS) {
+      buffer.set(ch.key, []);
+    }
+
+    const es = new EventSource("/api/eeg");
+    esRef.current = es;
+
+    es.onmessage = (e) => {
+      try {
+        const { eeg } = JSON.parse(e.data);
+        for (const ch of CHANNELS) {
+          const key = ch.key;
+          const arr = buffer.get(key);
+          if (arr && eeg[key] !== undefined) {
+            arr.push(eeg[key]);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to parse EEG data:", err);
+      }
+    };
+
+    es.onerror = () => {
+      console.log("EventSource closed, reconnecting...");
+    };
+
+    return () => {
+      es.close();
+    };
+  }, [dataBuffer]);
+
+  return (
+    <>
+      {CHANNELS.map((ch) => (
+        <EEGPanelCell
+          key={ch.key}
+          channelLabel={ch.label}
+          channelKey={ch.key}
+          dataBuffer={dataBuffer}
+        />
+      ))}
+    </>
+  );
+}
+
 export function EEGCard1() {
-  return <EEGPanelCell channelLabel="F3-参考" />;
+  return <EEGCards />;
 }
 
 export function EEGCard2() {
-  return <EEGPanelCell channelLabel="F4-参考" />;
+  return null;
 }
 
 export function EEGCard3() {
-  return <EEGPanelCell channelLabel="P3-参考" />;
+  return null;
 }
 
 export function EEGCard4() {
-  return <EEGPanelCell channelLabel="P4-参考" />;
+  return null;
 }
