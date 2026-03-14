@@ -44,15 +44,42 @@ function EEGPanelCell({
   channelLabel,
   channelKey,
   dataBuffer,
+  isRunning = true,
 }: {
   channelLabel: string;
   channelKey: string;
   dataBuffer: Map<string, number[]>;
+  isRunning?: boolean;
 }) {
   const svgWidth = 1124;
   const svgHeight = 200;
   const newPathRef = useRef<SVGPathElement>(null);
   const oldPathRef = useRef<SVGPathElement>(null);
+  const isRunningRef = useRef(isRunning);
+
+  // 用 ref 保存周期数据，避免 effect 重启时丢失
+  const cycleDataRef = useRef<{
+    currentCyclePoints: { elapsed: number; y: number }[];
+    prevCyclePoints: { elapsed: number; y: number }[];
+    cycleStartTime: number;
+  }>({
+    currentCyclePoints: [],
+    prevCyclePoints: [],
+    cycleStartTime: performance.now(),
+  });
+
+  // 同步 isRunning 到 ref
+  useEffect(() => {
+    isRunningRef.current = isRunning;
+    // 当开始运行时，重置周期数据，从头开始
+    if (isRunning) {
+      cycleDataRef.current = {
+        currentCyclePoints: [],
+        prevCyclePoints: [],
+        cycleStartTime: performance.now(),
+      };
+    }
+  }, [isRunning]);
 
   const chartWidth = svgWidth - MARGIN.left - MARGIN.right - DASHBOARD.width - DASHBOARD.left;
   const chartHeight = svgHeight - MARGIN.top - MARGIN.bottom;
@@ -80,44 +107,48 @@ function EEGPanelCell({
   ];
 
   useEffect(() => {
-    let currentCyclePoints: { elapsed: number; y: number }[] = [];
-    let prevCyclePoints: { elapsed: number; y: number }[] = [];
-    let cycleStartTime = performance.now();
+    const cycleData = cycleDataRef.current;
     const MS_PER_CYCLE = TOTAL_SECONDS * 1000;
 
     const animate = (timestamp: number) => {
+      // 通过 ref 检查运行状态
+      if (!isRunningRef.current) {
+        return;
+      }
+
       const buffer = dataBuffer.get(channelKey);
+      
       if (buffer && buffer.length > 0) {
         const values = buffer.slice();
         dataBuffer.set(channelKey, []);
 
         for (const value of values) {
           const now = performance.now();
-          const elapsed = now - cycleStartTime;
+          const elapsed = now - cycleData.cycleStartTime;
           
           const centerY = chartHeight / 2;
           const normalizedValue = Math.max(-1, Math.min(1, value / 100));
           const y = centerY - normalizedValue * centerY * 0.8;
 
-          currentCyclePoints.push({ elapsed, y });
+          cycleData.currentCyclePoints.push({ elapsed, y });
 
           // 检查是否需要开始新周期
           if (elapsed >= MS_PER_CYCLE) {
-            prevCyclePoints = currentCyclePoints;
-            currentCyclePoints = [];
-            cycleStartTime = now;
+            cycleData.prevCyclePoints = cycleData.currentCyclePoints;
+            cycleData.currentCyclePoints = [];
+            cycleData.cycleStartTime = now;
           }
         }
       }
 
       // 计算当前周期已过去的时间
       const now = performance.now();
-      const currentElapsed = now - cycleStartTime;
+      const currentElapsed = now - cycleData.cycleStartTime;
       const eraseElapsed = currentElapsed;
 
       // 绘制上一周期（灰色）- 只显示超出当前进度的部分
-      if (prevCyclePoints.length > 0) {
-        const visiblePrevPoints = prevCyclePoints.filter((p) => p.elapsed >= eraseElapsed);
+      if (cycleData.prevCyclePoints.length > 0) {
+        const visiblePrevPoints = cycleData.prevCyclePoints.filter((p) => p.elapsed >= eraseElapsed);
         if (visiblePrevPoints.length >= 2) {
           const d = visiblePrevPoints
             .map((p, i) => {
@@ -134,8 +165,8 @@ function EEGPanelCell({
       }
 
       // 绘制当前周期（新数据，亮色）
-      if (currentCyclePoints.length >= 2) {
-        const d = currentCyclePoints
+      if (cycleData.currentCyclePoints.length >= 2) {
+        const d = cycleData.currentCyclePoints
           .map((p, i) => {
             const x = (p.elapsed / MS_PER_CYCLE) * chartWidth;
             return `${i === 0 ? "M" : "L"} ${x.toFixed(2)} ${p.y.toFixed(2)}`;
@@ -151,7 +182,7 @@ function EEGPanelCell({
 
     const animId = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animId);
-  }, [channelKey, dataBuffer, chartWidth, chartHeight]);
+  }, [channelKey, dataBuffer, chartWidth, chartHeight, isRunning]);
 
   return (
     <div
@@ -286,15 +317,24 @@ function EEGPanelCell({
   );
 }
 
-export function EEGCards() {
-  const [dataBuffer] = useState(() => new Map<string, number[]>());
+export function EEGCards({ isRunning = true }: { isRunning?: boolean }) {
+  const [dataBuffer, setDataBuffer] = useState(() => new Map<string, number[]>());
   const esRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
+    // 初始化 buffer
     const buffer = dataBuffer;
-
     for (const ch of CHANNELS) {
       buffer.set(ch.key, []);
+    }
+
+    if (!isRunning) {
+      // 停止时只关闭连接，不清空 buffer（保留画布数据）
+      if (esRef.current) {
+        esRef.current.close();
+        esRef.current = null;
+      }
+      return;
     }
 
     const es = new EventSource("/api/eeg");
@@ -322,7 +362,7 @@ export function EEGCards() {
     return () => {
       es.close();
     };
-  }, [dataBuffer]);
+  }, [isRunning, dataBuffer]);
 
   return (
     <>
@@ -332,14 +372,15 @@ export function EEGCards() {
           channelLabel={ch.label}
           channelKey={ch.key}
           dataBuffer={dataBuffer}
+          isRunning={isRunning}
         />
       ))}
     </>
   );
 }
 
-export function EEGCard1() {
-  return <EEGCards />;
+export function EEGCard1({ isRunning = false }: { isRunning?: boolean }) {
+  return <EEGCards isRunning={isRunning} />;
 }
 
 export function EEGCard2() {

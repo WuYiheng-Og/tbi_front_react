@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart2, Cpu, Monitor, UserRound } from "lucide-react";
+import { BarChart2, Cpu, Monitor, UserRound, Play, Square } from "lucide-react";
 import { useState } from "react";
 import { PatientInfoDialog, type PatientSummary } from "../components/patient-info-dialog";
 import { EEGCard1, EEGCard2, EEGCard3, EEGCard4 } from "../components/eeg-panel";
@@ -41,6 +41,10 @@ function PatientBadge({ summary }: { summary: PatientSummary }) {
 
 export default function Home() {
   const [patient, setPatient] = useState<PatientSummary | null>(null);
+  const [isRunning, setIsRunning] = useState(false);
+
+  const handleStart = () => setIsRunning(true);
+  const handleStop = () => setIsRunning(false);
 
   return (
     <div className="flex h-full w-full flex-col bg-dashboard-bg">
@@ -52,7 +56,30 @@ export default function Home() {
             <h1 className="text-xl font-semibold text-dashboard-text">多模态可视化</h1>
           )}
         </div>
-        {!patient && <PatientInfoDialog onCompleted={setPatient} />}
+        <div className="flex items-center gap-4">
+          {patient && (
+            <div className="flex gap-2">
+              {!isRunning ? (
+                <button
+                  onClick={handleStart}
+                  className="flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-white hover:bg-green-700"
+                >
+                  <Play className="h-4 w-4" />
+                  开始
+                </button>
+              ) : (
+                <button
+                  onClick={handleStop}
+                  className="flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700"
+                >
+                  <Square className="h-4 w-4" />
+                  结束
+                </button>
+              )}
+            </div>
+          )}
+          {!patient && <PatientInfoDialog onCompleted={setPatient} />}
+        </div>
       </header>
 
       {/* 主体区域：两列四行布局 */}
@@ -61,11 +88,11 @@ export default function Home() {
 
           {/* 脑电 - 4个指标，占 2 行 (50%) */}
           <div className="flex-[2] grid grid-cols-2">
-            <EEGCard1 />
+            <EEGCard1 isRunning={isRunning} />
             <EEGCard2 />
             <EEGCard3 />
             <EEGCard4 />
-          </div>
+          </div> 
 
           {/* 脑血流 - 2个指标，占 1 行 (25%) */}
           <div className="flex-1 grid grid-cols-2">
