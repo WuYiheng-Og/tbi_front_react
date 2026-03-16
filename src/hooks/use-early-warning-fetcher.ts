@@ -1,0 +1,113 @@
+import { useEffect, useRef, useState, useCallback } from "react";
+
+export interface Scores {
+  ngl: number;
+  dlk: number;
+  yldl: number;
+  total_score_new: number;
+  time?: [number, number];
+  deep_learning_num1?: number;
+  deep_learning_num0?: number;
+  xgb_num1?: number;
+  xgb_num0?: number;
+}
+
+interface UseEarlyWarningResult {
+  scores: Scores;
+  hasFirstData: boolean;
+  setOnDataReceived: (callback: (() => void) | null) => void;
+}
+
+export function useEarlyWarningFetcher(isRunning: boolean): UseEarlyWarningResult {
+  const [scores, setScores] = useState<Scores>({
+    ngl: 0,
+    dlk: 0,
+    yldl: 0,
+    total_score_new: 0,
+    time: undefined,
+    deep_learning_num1: 0,
+    deep_learning_num0: 0,
+    xgb_num1: 0,
+    xgb_num0: 0,
+  });
+
+  const [hasFirstData, setHasFirstData] = useState(false);
+  const onDataReceivedRef = useRef<(() => void) | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+
+  const setOnDataReceived = useCallback((callback: (() => void) | null) => {
+    onDataReceivedRef.current = callback;
+  }, []);
+
+  useEffect(() => {
+    if (!isRunning) {
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+      return;
+    }
+
+    const connect = () => {
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        return;
+      }
+
+      console.log("[EarlyWarning] Connecting to WebSocket...");
+      const ws = new WebSocket("ws://localhost:8081/ws/early_warning");
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        console.log("[EarlyWarning] WebSocket connected");
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const json = JSON.parse(event.data);
+          if (json.data) {
+            if (!hasFirstData) {
+              setHasFirstData(true);
+              onDataReceivedRef.current?.();
+            }
+
+            const newScores: Scores = {
+              ngl: typeof json.data.ngl === "number" ? json.data.ngl : 0,
+              dlk: typeof json.data.dlk === "number" ? json.data.dlk : 0,
+              yldl: typeof json.data.yldl === "number" ? json.data.yldl : 0,
+              total_score_new: typeof json.data.total_score_new === "number" ? json.data.total_score_new : 0,
+              time: json.data.time,
+              deep_learning_num1: json.data.deep_learning_num1 ?? 0,
+              deep_learning_num0: json.data.deep_learning_num0 ?? 0,
+              xgb_num1: json.data.xgb_num1 ?? 0,
+              xgb_num0: json.data.xgb_num0 ?? 0,
+            };
+            setScores(newScores);
+          }
+        } catch (err) {
+          console.error("Failed to parse EarlyWarning WebSocket data:", err);
+        }
+      };
+
+      ws.onerror = () => {
+        console.log("[EarlyWarning] WebSocket error, reconnecting...");
+        setTimeout(connect, 5000);
+      };
+
+      ws.onclose = () => {
+        console.log("[EarlyWarning] WebSocket disconnected");
+        wsRef.current = null;
+      };
+    };
+
+    connect();
+
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+    };
+  }, [isRunning, hasFirstData]);
+
+  return { scores, hasFirstData, setOnDataReceived };
+}
