@@ -1,10 +1,14 @@
 /**
- * WebSocket Server for /ws/beike
+ * WebSocket Server for /ws/beike and /ws/rbp
  * Simulates the monitor data stream (EEG, DLK, YLDL) at 60Hz
+ * Simulates RBP data at 15s interval
  * 
  * Run with: npx tsx scripts/ws-beike-server.ts
  */
 
+import { WebSocketServer, WebSocket } from "ws";
+
+// ============== Beike (Monitor) Data ==============
 const SAMPLE_RATE = 60;
 const INTERVAL = 1000 / SAMPLE_RATE;
 
@@ -41,18 +45,62 @@ function generateMockData() {
   };
 }
 
-const clients = new Set<any>();
-let intervalId: NodeJS.Timeout | null = null;
+// ============== RBP Data ==============
+function generateMockRBPData() {
+  const now = Date.now();
+  const startTimestamp = now - 15000;
+  const endTimestamp = now;
 
-function startBroadcasting() {
-  if (intervalId) return;
+  const generateArray = () => {
+    return Array.from({ length: 6 }, () => Math.random() * 100);
+  };
+
+  return {
+    data: {
+      hasData: true,
+      date: [startTimestamp, endTimestamp],
+      RBPData_F3_Ref: generateArray(),
+      RBPData_P3_Ref: generateArray(),
+      RBPData_F4_Ref: generateArray(),
+      RBPData_P4_Ref: generateArray(),
+    },
+  };
+}
+
+// ============== Early Warning (Scores) Data ==============
+function generateMockScoresData(isFirst: boolean) {
+  const now = Date.now();
   
-  intervalId = setInterval(() => {
+  return {
+    data: {
+      hasData: !isFirst,
+      time: [now - 15000, now] as [number, number],
+      ngl: parseFloat((Math.random() * 40 + 60).toFixed(2)),
+      dlk: parseFloat((Math.random() * 40 + 60).toFixed(2)),
+      yldl: parseFloat((Math.random() * 40 + 60).toFixed(2)),
+      sum: parseFloat((Math.random() * 40 + 60).toFixed(2)),
+      deep_learning_num1: Math.floor(Math.random() * 100),
+      deep_learning_num0: Math.floor(Math.random() * 100),
+      xgb_num1: Math.floor(Math.random() * 100),
+      xgb_num0: Math.floor(Math.random() * 100),
+      total_score_new: parseFloat((Math.random() * 40 + 60).toFixed(2)),
+    },
+  };
+}
+
+// ============== Beike Clients ==============
+const beikeClients = new Set<WebSocket>();
+let beikeIntervalId: NodeJS.Timeout | null = null;
+
+function startBeikeBroadcasting() {
+  if (beikeIntervalId) return;
+  
+  beikeIntervalId = setInterval(() => {
     const data = generateMockData();
     const message = JSON.stringify(data);
     
-    clients.forEach((client) => {
-      if (client.readyState === 1) { // WebSocket.OPEN
+    beikeClients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
         client.send(message);
       }
     });
@@ -61,40 +109,164 @@ function startBroadcasting() {
   console.log(`[WS Beike] Broadcasting at ${SAMPLE_RATE}Hz`);
 }
 
-function stopBroadcasting() {
-  if (intervalId) {
-    clearInterval(intervalId);
-    intervalId = null;
+function stopBeikeBroadcasting() {
+  if (beikeIntervalId) {
+    clearInterval(beikeIntervalId);
+    beikeIntervalId = null;
     console.log("[WS Beike] Stopped broadcasting");
   }
 }
 
-import { WebSocketServer, WebSocket } from "ws";
+// ============== RBP Clients ==============
+const rbpClients = new Set<WebSocket>();
+let rbpIntervalId: NodeJS.Timeout | null = null;
+let rbpTimeoutId: NodeJS.Timeout | null = null;
 
+function startRbpBroadcasting() {
+  if (rbpIntervalId) return;
+
+  // Initial delay 15s, then send every 15s
+  rbpTimeoutId = setTimeout(() => {
+    const sendRBP = () => {
+      const data = generateMockRBPData();
+      const message = JSON.stringify(data);
+      
+      rbpClients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(message);
+        }
+      });
+    };
+
+    // Send first data after 15s
+    sendRBP();
+
+    // Then send every 15s
+    rbpIntervalId = setInterval(sendRBP, 15000);
+    console.log("[WS RBP] Broadcasting at 15s interval");
+  }, 15000);
+}
+
+function stopRbpBroadcasting() {
+  if (rbpTimeoutId) {
+    clearTimeout(rbpTimeoutId);
+    rbpTimeoutId = null;
+  }
+  if (rbpIntervalId) {
+    clearInterval(rbpIntervalId);
+    rbpIntervalId = null;
+    console.log("[WS RBP] Stopped broadcasting");
+  }
+}
+
+// ============== Early Warning Clients ==============
+const earlyWarningClients = new Set<WebSocket>();
+let earlyWarningIntervalId: NodeJS.Timeout | null = null;
+let earlyWarningTimeoutId: NodeJS.Timeout | null = null;
+let earlyWarningIsFirst = true;
+
+function startEarlyWarningBroadcasting() {
+  if (earlyWarningIntervalId) return;
+
+  // Initial delay 15s, then send every 15s
+  earlyWarningTimeoutId = setTimeout(() => {
+    const sendScores = () => {
+      const data = generateMockScoresData(earlyWarningIsFirst);
+      const message = JSON.stringify(data);
+      
+      earlyWarningClients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(message);
+        }
+      });
+
+      if (earlyWarningIsFirst) {
+        earlyWarningIsFirst = false;
+      }
+    };
+
+    // Send first data after 15s
+    sendScores();
+
+    // Then send every 15s
+    earlyWarningIntervalId = setInterval(sendScores, 15000);
+    console.log("[WS Early Warning] Broadcasting at 15s interval");
+  }, 15000);
+}
+
+function stopEarlyWarningBroadcasting() {
+  if (earlyWarningTimeoutId) {
+    clearTimeout(earlyWarningTimeoutId);
+    earlyWarningTimeoutId = null;
+  }
+  if (earlyWarningIntervalId) {
+    clearInterval(earlyWarningIntervalId);
+    earlyWarningIntervalId = null;
+    earlyWarningIsFirst = true;
+    console.log("[WS Early Warning] Stopped broadcasting");
+  }
+}
+
+// ============== WebSocket Server ==============
 const wss = new WebSocketServer({ port: 8081 });
 
-wss.on("connection", (ws: WebSocket) => {
-  console.log("[WS Beike] Client connected");
-  clients.add(ws);
-  
-  // Start broadcasting when first client connects
-  if (clients.size === 1) {
-    startBroadcasting();
+wss.on("connection", (ws: WebSocket, req) => {
+  const path = req.url;
+
+  if (path === "/ws/beike") {
+    console.log("[WS Beike] Client connected");
+    beikeClients.add(ws);
+    
+    if (beikeClients.size === 1) {
+      startBeikeBroadcasting();
+    }
+
+    ws.on("close", () => {
+      console.log("[WS Beike] Client disconnected");
+      beikeClients.delete(ws);
+      if (beikeClients.size === 0) {
+        stopBeikeBroadcasting();
+      }
+    });
+  } else if (path === "/ws/rbp") {
+    console.log("[WS RBP] Client connected");
+    rbpClients.add(ws);
+    
+    if (rbpClients.size === 1) {
+      startRbpBroadcasting();
+    }
+
+    ws.on("close", () => {
+      console.log("[WS RBP] Client disconnected");
+      rbpClients.delete(ws);
+      if (rbpClients.size === 0) {
+        stopRbpBroadcasting();
+      }
+    });
+  } else if (path === "/ws/early_warning") {
+    console.log("[WS Early Warning] Client connected");
+    earlyWarningClients.add(ws);
+    
+    if (earlyWarningClients.size === 1) {
+      startEarlyWarningBroadcasting();
+    }
+
+    ws.on("close", () => {
+      console.log("[WS Early Warning] Client disconnected");
+      earlyWarningClients.delete(ws);
+      if (earlyWarningClients.size === 0) {
+        stopEarlyWarningBroadcasting();
+      }
+    });
+  } else {
+    console.log(`[WS] Unknown path: ${path}, closing`);
+    ws.close();
   }
 
-  ws.on("close", () => {
-    console.log("[WS Beike] Client disconnected");
-    clients.delete(ws);
-    
-    // Stop broadcasting when no clients remain
-    if (clients.size === 0) {
-      stopBroadcasting();
-    }
-  });
-
   ws.on("error", (error) => {
-    console.error("[WS Beike] WebSocket error:", error);
+    console.error("[WS] WebSocket error:", error);
   });
 });
 
-console.log("[WS Beike] Server running on ws://localhost:8081/ws/beike");
+console.log("[WS] Server running on ws://localhost:8081");
+console.log("[WS] Endpoints: /ws/beike, /ws/rbp, /ws/early_warning");

@@ -50,20 +50,24 @@ export function ScorePanel({ isRunning, onDataReceived }: ScorePanelProps) {
 
   useEffect(() => {
     if (!isRunning) {
-      // 停止时断开连接
       return;
     }
 
-    let eventSource: EventSource | null = null;
+    let ws: WebSocket | null = null;
 
-    const connectSSE = () => {
-      eventSource = new EventSource("/api/scores");
+    const connectWS = () => {
+      ws = new WebSocket("ws://localhost:8081/ws/early_warning");
 
-      eventSource.onmessage = (event) => {
+      ws.onopen = () => {
+        console.log("[ScorePanel] WebSocket connected");
+      };
+
+      ws.onmessage = (event) => {
         try {
           const json = JSON.parse(event.data);
+          console.log('json', json);
+          
           if (json.data) {
-            // 无论 hasData 是 true 还是 false，只要收到数据就触发回调
             if (!hasFirstData) {
               setHasFirstData(true);
               onDataReceived?.();
@@ -85,23 +89,27 @@ export function ScorePanel({ isRunning, onDataReceived }: ScorePanelProps) {
             }
           }
         } catch (err) {
-          console.error("Failed to parse SSE data:", err);
+          console.error("Failed to parse WebSocket data:", err);
         }
       };
 
-      eventSource.onerror = () => {
-        eventSource?.close();
-        // 重新连接
-        setTimeout(connectSSE, 5000);
+      ws.onerror = () => {
+        console.log("[ScorePanel] WebSocket error, reconnecting...");
+        setTimeout(connectWS, 5000);
+      };
+
+      ws.onclose = () => {
+        console.log("[ScorePanel] WebSocket disconnected");
+        ws = null;
       };
     };
 
-    connectSSE();
+    connectWS();
 
     return () => {
-      eventSource?.close();
+      ws?.close();
     };
-  }, [isRunning]);
+  }, [isRunning, hasFirstData, onDataReceived]);
 
   // 计算趋势 = 当前值 - 上一次值
   const getTrend = (current: number, previous: number) => {
