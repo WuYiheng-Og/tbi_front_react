@@ -4,8 +4,8 @@ export const dynamic = "force-dynamic";
 
 function generateMockRBPData() {
   const now = Date.now();
-  const startTimestamp = now;
-  const endTimestamp = now + 15000;
+  const startTimestamp = now - 15000;
+  const endTimestamp = now;
 
   const generateArray = () => {
     return Array.from({ length: 6 }, () => Math.random() * 100);
@@ -13,6 +13,7 @@ function generateMockRBPData() {
 
   return {
     data: {
+      hasData: true, // 标记是否有数据（用于首次15s判断）
       date: [startTimestamp, endTimestamp],
       RBPData_F3_Ref: generateArray(),
       RBPData_P3_Ref: generateArray(),

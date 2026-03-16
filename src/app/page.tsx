@@ -117,7 +117,7 @@ export default function Home() {
       try {
         const res = await fetch("/api/rbp");
         const json = await res.json();
-        if (json.data) {
+        if (json.data && json.data.hasData) {
           // RBPData_xx_Ref -> EEGData_xx_Ref 映射
           const mapping: Record<string, string> = {
             "RBPData_F3_Ref": "EEGData_F3_Ref",
@@ -139,10 +139,16 @@ export default function Home() {
       }
     };
 
-    fetchRBP();
+    // 首次延迟15秒请求（后端第一个15s不会返回数据）
+    const timeoutId = setTimeout(fetchRBP, 15000);
+
+    // 之后每15秒请求一次
     const interval = setInterval(fetchRBP, 15000);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(timeoutId);
+      clearInterval(interval);
+    };
   }, [isRunning]);
 
   const handleStart = () => setIsRunning(true);
@@ -152,7 +158,7 @@ export default function Home() {
     <div className="flex h-full w-full flex-col bg-dashboard-bg">
       {/* 顶部 Header */}
       <header className="flex items-center justify-between border-b border-dashboard-border px-8 py-4">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 flex-1">
           {patient && (
             <>
               <PatientBadge summary={patient} />
@@ -169,7 +175,7 @@ export default function Home() {
               {!isRunning ? (
                 <button
                   onClick={handleStart}
-                  className="flex items-center gap-2 rounded-md bg-green-600 px-6 py-2 text-white hover:bg-green-700 transition-colors"
+                  className="flex items-center ml-4 rounded-md bg-green-600 px-6 py-2 text-white hover:bg-green-700 transition-colors"
                 >
                   <Play className="h-4 w-4" />
                   开始采集
@@ -177,7 +183,7 @@ export default function Home() {
               ) : (
                 <button
                   onClick={handleStop}
-                  className="flex items-center gap-2 rounded-md bg-red-600 px-6 py-2 text-white hover:bg-red-700 transition-colors"
+                  className="flex items-center ml-4  rounded-md bg-red-600 px-6 py-2 text-white hover:bg-red-700 transition-colors"
                 >
                   <Square className="h-4 w-4" />
                   停止采集

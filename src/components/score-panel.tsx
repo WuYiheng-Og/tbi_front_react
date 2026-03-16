@@ -2,12 +2,18 @@
 
 import { useState, useEffect, useRef } from "react";
 import { AlertCard } from "./alert-card";
+import { TotalScoreCard } from "./total-score-card";
 
 interface Scores {
   ngl: number;
   dlk: number;
   yldl: number;
   total_score_new: number;
+  time?: [number, number];
+  deep_learning_num1?: number;
+  deep_learning_num0?: number;
+  xgb_num1?: number;
+  xgb_num0?: number;
 }
 
 interface ScorePanelProps {
@@ -20,6 +26,11 @@ export function ScorePanel({ isRunning }: ScorePanelProps) {
     dlk: 0,
     yldl: 0,
     total_score_new: 0,
+    time: undefined,
+    deep_learning_num1: 0,
+    deep_learning_num0: 0,
+    xgb_num1: 0,
+    xgb_num0: 0,
   });
 
   const prevScoresRef = useRef<Scores>({
@@ -27,35 +38,64 @@ export function ScorePanel({ isRunning }: ScorePanelProps) {
     dlk: 0,
     yldl: 0,
     total_score_new: 0,
+    time: undefined,
+    deep_learning_num1: 0,
+    deep_learning_num0: 0,
+    xgb_num1: 0,
+    xgb_num0: 0,
   });
+
+  const [hasFirstData, setHasFirstData] = useState(false);
 
   useEffect(() => {
     if (!isRunning) {
+      // 停止时断开连接
       return;
     }
 
-    const fetchScores = async () => {
-      try {
-        const res = await fetch("/api/scores");
-        const json = await res.json();
-        if (json.data) {
-          const newScores = {
-            ngl: json.data.ngl ?? 0,
-            dlk: json.data.dlk ?? 0,
-            yldl: json.data.yldl ?? 0,
-            total_score_new: json.data.total_score_new ?? 0,
-          };
-          setScores(newScores);
+    let eventSource: EventSource | null = null;
+
+    const connectSSE = () => {
+      eventSource = new EventSource("/api/scores");
+
+      eventSource.onmessage = (event) => {
+        try {
+          const json = JSON.parse(event.data);
+          if (json.data && json.data.hasData) {
+            const newScores: Scores = {
+              ngl: typeof json.data.ngl === "number" ? json.data.ngl : 0,
+              dlk: typeof json.data.dlk === "number" ? json.data.dlk : 0,
+              yldl: typeof json.data.yldl === "number" ? json.data.yldl : 0,
+              total_score_new: typeof json.data.total_score_new === "number" ? json.data.total_score_new : 0,
+              time: json.data.time,
+              deep_learning_num1: json.data.deep_learning_num1 ?? 0,
+              deep_learning_num0: json.data.deep_learning_num0 ?? 0,
+              xgb_num1: json.data.xgb_num1 ?? 0,
+              xgb_num0: json.data.xgb_num0 ?? 0,
+            };
+            setScores(newScores);
+            setHasFirstData(true);
+          } else if (json.data && !json.data.hasData) {
+            // 首次15s内无数据，标记为已有数据（避免一直请求）
+            setHasFirstData(true);
+          }
+        } catch (err) {
+          console.error("Failed to parse SSE data:", err);
         }
-      } catch (err) {
-        console.error("Failed to fetch scores:", err);
-      }
+      };
+
+      eventSource.onerror = () => {
+        eventSource?.close();
+        // 重新连接
+        setTimeout(connectSSE, 5000);
+      };
     };
 
-    fetchScores();
-    const interval = setInterval(fetchScores, 2000);
+    connectSSE();
 
-    return () => clearInterval(interval);
+    return () => {
+      eventSource?.close();
+    };
   }, [isRunning]);
 
   // 计算趋势 = 当前值 - 上一次值
@@ -66,18 +106,15 @@ export function ScorePanel({ isRunning }: ScorePanelProps) {
 
   // 更新上一次的值（用于下一次计算趋势）
   useEffect(() => {
-    if (isRunning) {
+    if (isRunning && scores.time !== prevScoresRef.current.time) {
       prevScoresRef.current = { ...scores };
     }
   }, [scores, isRunning]);
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex items-center gap-4 flex-1">
       {/* 总分卡片 */}
-      <div className="flex flex-col items-center rounded-lg bg-[#0d3540] px-4 py-2">
-        <span className="text-xs text-white/70">总分</span>
-        <span className="text-2xl font-bold text-[#ff7f27]">{scores.total_score_new}</span>
-      </div>
+        <TotalScoreCard currentScore={scores.total_score_new} dataTime={scores.time} /> 
 
       {/* 脑电评分 */}
       <AlertCard
