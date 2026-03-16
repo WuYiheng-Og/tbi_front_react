@@ -98,7 +98,7 @@ export function PredictionDialog({ uuid, open, onOpenChange }: PredictionDialogP
     if (!open || step !== "loading" || apiStartTime === null) return;
 
     const fetchPrediction = async () => {
-      await mockPredictAPI(uuid);
+      await predictAPI(uuid);
       // API 返回后，根据实际耗时更新进度条
       const actualDuration = Date.now() - apiStartTime;
       const actualProgress = Math.min((actualDuration / 15000) * 100, 100);
@@ -107,22 +107,20 @@ export function PredictionDialog({ uuid, open, onOpenChange }: PredictionDialogP
       // 短暂延迟后切换到结果页面，让用户看到100%
       setTimeout(() => {
         setStep("result");
-      }, 300);
+      }, 1000);
     };
 
     fetchPrediction();
   }, [open, apiStartTime]);
 
-  // Mock 预测 API
-  const mockPredictAPI = async (patientUuid: string): Promise<void> => {
-    console.log("调用预测API:", { uuid: patientUuid });
-    // 模拟 API 响应
-    const mockResponse = {
-      state: 1,
-      data: ["清醒", "清醒", "昏迷"],
-      message: "预测成功"
-    };
-    console.log("预测API响应:", mockResponse);
+  // 预测 API
+  const predictAPI = async (patientUuid: string): Promise<void> => {
+    const response = await fetch("/api/prediction", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ uuid: patientUuid }),
+    });
+    const mockResponse = await response.json();
 
     // 更新预测结果
     setPredictionResult({
@@ -207,7 +205,7 @@ export function PredictionDialog({ uuid, open, onOpenChange }: PredictionDialogP
     console.log("提交反馈数据:", requestBody);
 
     // Mock 提交反馈 API
-    await mockSubmitFeedbackAPI(requestBody);
+    await submitFeedbackAPI(requestBody);
 
     setIsSubmitting(true);
     await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -215,21 +213,19 @@ export function PredictionDialog({ uuid, open, onOpenChange }: PredictionDialogP
     setSubmitSuccess(true);
   };
 
-  // Mock 提交反馈 API
-  const mockSubmitFeedbackAPI = async (data: {
+  // 提交反馈 API
+  const submitFeedbackAPI = async (data: {
     uuid: string;
     approval: boolean;
     origin: PostOpStatus[];
     feedback: PostOpStatus[];
     clinicalInfo: { anesthesia: "yes" | "no" | null; complicationLevel: 1 | 2 | 3 | null };
   }): Promise<void> => {
-    console.log("调用提交反馈API:", data);
-    // 模拟 API 响应
-    const mockResponse = {
-      state: 1,
-      message: "反馈提交成功"
-    };
-    console.log("提交反馈API响应:", mockResponse);
+    await fetch("/api/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
   };
 
   const handleClose = () => {
