@@ -8,6 +8,7 @@ import { NIRSCard1, NIRSCard2 } from "../components/nirs-panel";
 import { CBFCard1, CBFCard2 } from "../components/cbf-panel";
 import { PatientBadge } from "../components/patient-badge";
 import { ControlPanel } from "../components/control-panel";
+import { PredictionDialog } from "../components/prediction-dialog";
 import { useDataBuffer } from "../hooks/use-data-buffer";
 import { useDataStream } from "../hooks/use-data-stream";
 import { useRBPFetcher } from "../hooks/use-rbp-fetcher";
@@ -17,6 +18,8 @@ export default function Home() {
   const [isRunning, setIsRunning] = useState(false);
   const [hasReceivedData, setHasReceivedData] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [predictionOpen, setPredictionOpen] = useState(false);
+  const [patientUuid] = useState("mock-patient-uuid-12345");
 
   const dataBuffer = useDataBuffer();
   const rbpData = useRBPFetcher(isRunning);
@@ -48,6 +51,10 @@ export default function Home() {
     setIsRunning(false);
   };
 
+  const handlePredict = () => {
+    setPredictionOpen(true);
+  };
+
   return (
     <div className="flex h-full w-full flex-col bg-dashboard-bg">
       <header className="flex items-center justify-between border-b border-dashboard-border px-2 py-2">
@@ -70,6 +77,7 @@ export default function Home() {
               elapsedTime={elapsedTime}
               onStart={handleStart}
               onStop={handleStop}
+              onPredict={handlePredict}
             />
           )}
           {!patient && <PatientInfoDialog onCompleted={setPatient} />}
@@ -96,6 +104,12 @@ export default function Home() {
           </div>
         </section>
       </main>
+
+      <PredictionDialog
+        uuid={patientUuid}
+        open={predictionOpen}
+        onOpenChange={setPredictionOpen}
+      />
     </div>
   );
 }

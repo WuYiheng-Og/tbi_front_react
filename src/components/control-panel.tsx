@@ -8,6 +8,7 @@ interface ControlPanelProps {
   elapsedTime: number;
   onStart: () => void;
   onStop: () => void;
+  onPredict?: () => void;
 }
 
 function formatTime(seconds: number) {
@@ -26,6 +27,7 @@ export function ControlPanel({
   elapsedTime,
   onStart,
   onStop,
+  onPredict,
 }: ControlPanelProps) {
   return (
     <div className="flex flex-col gap-2 item-center ml-4">
@@ -55,7 +57,10 @@ export function ControlPanel({
       </div>
       <div className="flex gap-2 min-w-[140px]">
         {!isRunning && hasReceivedData ? (
-          <button className="flex items-center ml-4 rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 transition-colors">
+          <button
+            onClick={onPredict}
+            className="flex items-center ml-4 rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 transition-colors"
+          >
             <Brain className="h-4 w-4" />
             点击预测
           </button>
