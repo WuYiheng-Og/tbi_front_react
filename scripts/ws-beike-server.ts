@@ -68,12 +68,11 @@ function generateMockRBPData() {
 }
 
 // ============== Early Warning (Scores) Data ==============
-function generateMockScoresData(isFirst: boolean) {
+function generateMockScoresData() {
   const now = Date.now();
   
   return {
     data: {
-      hasData: !isFirst,
       time: [now - 15000, now] as [number, number],
       ngl: parseFloat((Math.random() * 40 + 60).toFixed(2)),
       dlk: parseFloat((Math.random() * 40 + 60).toFixed(2)),
@@ -163,7 +162,6 @@ function stopRbpBroadcasting() {
 const earlyWarningClients = new Set<WebSocket>();
 let earlyWarningIntervalId: NodeJS.Timeout | null = null;
 let earlyWarningTimeoutId: NodeJS.Timeout | null = null;
-let earlyWarningIsFirst = true;
 
 function startEarlyWarningBroadcasting() {
   if (earlyWarningIntervalId) return;
@@ -171,7 +169,7 @@ function startEarlyWarningBroadcasting() {
   // Initial delay 15s, then send every 15s
   earlyWarningTimeoutId = setTimeout(() => {
     const sendScores = () => {
-      const data = generateMockScoresData(earlyWarningIsFirst);
+      const data = generateMockScoresData();
       const message = JSON.stringify(data);
       
       earlyWarningClients.forEach((client) => {
@@ -179,10 +177,6 @@ function startEarlyWarningBroadcasting() {
           client.send(message);
         }
       });
-
-      if (earlyWarningIsFirst) {
-        earlyWarningIsFirst = false;
-      }
     };
 
     // Send first data after 15s
@@ -202,7 +196,6 @@ function stopEarlyWarningBroadcasting() {
   if (earlyWarningIntervalId) {
     clearInterval(earlyWarningIntervalId);
     earlyWarningIntervalId = null;
-    earlyWarningIsFirst = true;
     console.log("[WS Early Warning] Stopped broadcasting");
   }
 }

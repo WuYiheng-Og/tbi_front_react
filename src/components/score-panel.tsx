@@ -73,20 +73,18 @@ export function ScorePanel({ isRunning, onDataReceived }: ScorePanelProps) {
               onDataReceived?.();
             }
 
-            if (json.data.hasData) {
-              const newScores: Scores = {
-                ngl: typeof json.data.ngl === "number" ? json.data.ngl : 0,
-                dlk: typeof json.data.dlk === "number" ? json.data.dlk : 0,
-                yldl: typeof json.data.yldl === "number" ? json.data.yldl : 0,
-                total_score_new: typeof json.data.total_score_new === "number" ? json.data.total_score_new : 0,
-                time: json.data.time,
-                deep_learning_num1: json.data.deep_learning_num1 ?? 0,
-                deep_learning_num0: json.data.deep_learning_num0 ?? 0,
-                xgb_num1: json.data.xgb_num1 ?? 0,
-                xgb_num0: json.data.xgb_num0 ?? 0,
-              };
-              setScores(newScores);
-            }
+            const newScores: Scores = {
+              ngl: typeof json.data.ngl === "number" ? json.data.ngl : 0,
+              dlk: typeof json.data.dlk === "number" ? json.data.dlk : 0,
+              yldl: typeof json.data.yldl === "number" ? json.data.yldl : 0,
+              total_score_new: typeof json.data.total_score_new === "number" ? json.data.total_score_new : 0,
+              time: json.data.time,
+              deep_learning_num1: json.data.deep_learning_num1 ?? 0,
+              deep_learning_num0: json.data.deep_learning_num0 ?? 0,
+              xgb_num1: json.data.xgb_num1 ?? 0,
+              xgb_num0: json.data.xgb_num0 ?? 0,
+            };
+            setScores(newScores);
           }
         } catch (err) {
           console.error("Failed to parse WebSocket data:", err);
