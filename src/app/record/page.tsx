@@ -81,18 +81,29 @@ export default function RecordPage() {
     remark: "",
   });
 
-  // 获取患者列表
+  // 获取所有患者列表
   const fetchPatients = async () => {
     try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/patients/list`);
+      const data = await res.json();
+      setPatients(data);
+    } catch (error) {
+      console.error("获取患者列表失败:", error);
+    }
+  };
+
+  // 搜索患者（支持按姓名过滤）
+  const searchPatients = async (name: string) => {
+    try {
       const params = new URLSearchParams();
-      if (searchName) {
-        params.set("name", searchName);
+      if (name) {
+        params.set("name", name);
       }
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/patients?${params}`);
       const data = await res.json();
       setPatients(data);
     } catch (error) {
-      console.error("获取患者列表失败:", error);
+      console.error("搜索患者失败:", error);
     }
   };
 
@@ -124,9 +135,11 @@ export default function RecordPage() {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/records?${params.toString()}`
       );
-      console.log('res', res);
+      console.log("records 请求 URL:", `${process.env.NEXT_PUBLIC_API_BASE_URL}/records?${params.toString()}`);
+      console.log("filters:", filters);
       
       const data = await res.json();
+      console.log("records 返回数据:", data);
       setRecords(data);
     } catch (error) {
       console.error("获取记录列表失败:", error);
@@ -143,7 +156,7 @@ export default function RecordPage() {
   // 搜索患者
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchPatients();
+      searchPatients(searchName);
     }, 300);
     return () => clearTimeout(timer);
   }, [searchName]);
@@ -151,7 +164,7 @@ export default function RecordPage() {
   // 选中患者时获取记录
   useEffect(() => {
     if (selectedPatient) {
-      fetchRecords({ patient_id: selectedPatient.id, name: selectedPatient.name, sex: selectedPatient.sex, delica_mode: selectedPatient.delicaMode, nicolet_mode: selectedPatient.nicoletMode, glory_mode: selectedPatient.gloryMode, collect_datetime: selectedPatient.collectDateTime, end_datetime: selectedPatient.endDateTime });
+      fetchRecords({ patient_id: selectedPatient.id, name: selectedPatient.name, sex: selectedPatient.sex });
     } else {
       setRecords([]);
     }
@@ -217,7 +230,7 @@ export default function RecordPage() {
   // 刷新当前患者记录
   const handleRefresh = () => {
     if (selectedPatient) {
-      fetchRecords({ patient_id: selectedPatient.id, name: selectedPatient.name, sex: selectedPatient.sex, delica_mode: selectedPatient.delicaMode, nicolet_mode: selectedPatient.nicoletMode, glory_mode: selectedPatient.gloryMode, collect_datetime: selectedPatient.collectDateTime, end_datetime: selectedPatient.endDateTime });
+      fetchRecords({ patient_id: selectedPatient.id, name: selectedPatient.name, sex: selectedPatient.sex });
     }
   };
 
