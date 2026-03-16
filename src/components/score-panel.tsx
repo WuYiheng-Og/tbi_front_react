@@ -51,13 +51,15 @@ export function ScorePanel({ isRunning, onDataReceived, recordId, alertWeights }
     xgb_num0: 0,
   });
 
-  const getTrend = (current: number, previous: number) => {
-    const diff = current - previous;
-    return Number(diff.toFixed(1));
-  };
+  // 只在 scores 变化时计算趋势
+  const trends = useMemo(() => ({
+    ngl: Number((scores.ngl - prevScoresRef.current.ngl).toFixed(1)),
+    dlk: Number((scores.dlk - prevScoresRef.current.dlk).toFixed(1)),
+    yldl: Number((scores.yldl - prevScoresRef.current.yldl).toFixed(1)),
+  }), [scores.ngl, scores.dlk, scores.yldl]);
 
   useEffect(() => {
-    if (isRunning && scores.time !== prevScoresRef.current.time) {
+    if (isRunning && scores.time !== prevScoresRef.current.time) { 
       prevScoresRef.current = { ...scores };
     }
   }, [scores, isRunning]);
@@ -71,7 +73,7 @@ export function ScorePanel({ isRunning, onDataReceived, recordId, alertWeights }
       <AlertCard
         title="脑电评分"
         value={scores.ngl}
-        trend={getTrend(scores.ngl, prevScoresRef.current.ngl)}
+        trend={trends.ngl}
         className="alert-card-eeg"
       />
 
@@ -79,7 +81,7 @@ export function ScorePanel({ isRunning, onDataReceived, recordId, alertWeights }
       <AlertCard
         title="脑血流评分"
         value={scores.dlk}
-        trend={getTrend(scores.dlk, prevScoresRef.current.dlk)}
+        trend={trends.dlk}
         className="alert-card-dlk"
       />
 
@@ -87,7 +89,7 @@ export function ScorePanel({ isRunning, onDataReceived, recordId, alertWeights }
       <AlertCard
         title="脑氧评分"
         value={scores.yldl}
-        trend={getTrend(scores.yldl, prevScoresRef.current.yldl)}
+        trend={trends.yldl}
         className="alert-card-yldl"
       />
     </div>

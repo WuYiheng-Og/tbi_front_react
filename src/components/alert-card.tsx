@@ -35,6 +35,9 @@ export function AlertCard({ title, value, trend = 0, className = "" }: AlertCard
     return `${prefix}${trend.toFixed(1)}`;
   };
 
+  // 当 trend 变化时触发重新渲染
+  const trendKey = `${trend}-${value}`;
+
   useEffect(() => {
     if (!chartRef.current) return;
 
@@ -125,6 +128,7 @@ export function AlertCard({ title, value, trend = 0, className = "" }: AlertCard
 
       {/* 趋势指示器 */}
       <div
+        key={trendKey}
         className={`mb-1 flex items-center gap-1 rounded-full px-2 py-0.5 text-xs w-fit ${
           trendType === "positive"
             ? "bg-green-100/20 text-green-600"
