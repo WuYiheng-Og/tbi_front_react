@@ -1,6 +1,6 @@
 /**
  * WebSocket Server - Unified entry point
- * Serves /ws/beike, /ws/rbp, /ws/early_warning on port 8081
+ * Serves /ws/beike/, /ws/rbp/, /ws/early_warning/   on port 8081
  *
  * Run with: npx tsx scripts/ws-beike-server.ts
  */
@@ -142,7 +142,7 @@ const wss = new WebSocketServer({ port: PORT });
 wss.on("connection", (ws: WebSocket, req) => {
   const path = req.url;
 
-  if (path === "/ws/beike") {
+  if (path === "/ws/beike/") {
     console.log("[WS Beike] Client connected");
     beikeClients.set(ws, { ws });
 
@@ -171,7 +171,7 @@ wss.on("connection", (ws: WebSocket, req) => {
         stopBeikeBroadcasting();
       }
     });
-  } else if (path === "/ws/rbp") {
+  } else if (path === "/ws/rbp/") {
     console.log("[WS RBP] Client connected");
     rbpClients.set(ws, { ws });
 
@@ -199,7 +199,7 @@ wss.on("connection", (ws: WebSocket, req) => {
         stopRbpBroadcasting();
       }
     });
-  } else if (path === "/ws/early_warning") {
+  } else if (path === "/ws/early_warning/") {
     console.log("[WS Early Warning] Client connected");
     earlyWarningClients.set(ws, { ws });
 
@@ -241,4 +241,4 @@ wss.on("connection", (ws: WebSocket, req) => {
 });
 
 console.log(`[WS] Server running on ws://localhost:${PORT}`);
-console.log("[WS] Endpoints: /ws/beike, /ws/rbp, /ws/early_warning");
+console.log("[WS] Endpoints: /ws/beike/, /ws/rbp/, /ws/early_warning/ ");
