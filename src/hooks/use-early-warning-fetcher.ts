@@ -34,6 +34,7 @@ export function useEarlyWarningFetcher(isRunning: boolean): UseEarlyWarningResul
   const [hasFirstData, setHasFirstData] = useState(false);
   const onDataReceivedRef = useRef<(() => void) | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
+  const hasFirstDataRef = useRef(false);
 
   const setOnDataReceived = useCallback((callback: (() => void) | null) => {
     onDataReceivedRef.current = callback;
@@ -45,6 +46,7 @@ export function useEarlyWarningFetcher(isRunning: boolean): UseEarlyWarningResul
         wsRef.current.close();
         wsRef.current = null;
       }
+      hasFirstDataRef.current = false;
       return;
     }
 
@@ -65,7 +67,8 @@ export function useEarlyWarningFetcher(isRunning: boolean): UseEarlyWarningResul
         try {
           const json = JSON.parse(event.data);
           if (json.data) {
-            if (!hasFirstData) {
+            if (!hasFirstDataRef.current) {
+              hasFirstDataRef.current = true;
               setHasFirstData(true);
               onDataReceivedRef.current?.();
             }
@@ -89,8 +92,7 @@ export function useEarlyWarningFetcher(isRunning: boolean): UseEarlyWarningResul
       };
 
       ws.onerror = () => {
-        console.log("[EarlyWarning] WebSocket error, reconnecting...");
-        setTimeout(connect, 5000);
+        console.log("[EarlyWarning] WebSocket error");
       };
 
       ws.onclose = () => {
@@ -107,7 +109,7 @@ export function useEarlyWarningFetcher(isRunning: boolean): UseEarlyWarningResul
         wsRef.current = null;
       }
     };
-  }, [isRunning, hasFirstData]);
+  }, [isRunning, setOnDataReceived]);
 
   return { scores, hasFirstData, setOnDataReceived };
 }

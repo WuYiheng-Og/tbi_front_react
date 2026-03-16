@@ -8,6 +8,15 @@ export type PatientSummary = {
   delikaiModeText: string;
   nicoletModeText: string;
   yldlModeText: string;
+  patientId?: string;
+  nglMode: string;
+  dlkMode: string;
+  yldlMode: string;
+  alertWeights: {
+    ngl: string;
+    dlk: string;
+    yldl: string;
+  };
 };
 
 const nglModeLabels: Record<string, string> = {
@@ -71,6 +80,7 @@ export function PatientInfoDialog({ onCompleted }: PatientInfoDialogProps) {
   const [form, setForm] = useState<PatientForm>(initialForm);
   const [buttonLabel, setButtonLabel] = useState("录入病人信息");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   function handleChange<K extends keyof PatientForm>(key: K, value: PatientForm[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -162,7 +172,7 @@ export function PatientInfoDialog({ onCompleted }: PatientInfoDialogProps) {
     return message;
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
     const fieldsToValidate = [
@@ -190,15 +200,54 @@ export function PatientInfoDialog({ onCompleted }: PatientInfoDialogProps) {
       return;
     }
 
-    setButtonLabel(`${form.name} - ${form.age}岁 - ${form.sex}`);
-    setOpen(false);
-    onCompleted?.({
-      name: form.name,
-      age: form.age,
-      delikaiModeText: channelModeLabels[form.dlk] ?? "--",
-      nicoletModeText: nglModeLabels[form.ngl] ?? "--",
-      yldlModeText: channelModeLabels[form.yldl] ?? "--",
-    });
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch("/api/data/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.name,
+          phone: form.phone,
+          address: form.address,
+          weight: form.weight,
+          height: form.height,
+          sex: form.sex,
+          age: form.age,
+          remark: form.others,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to register patient");
+      }
+
+      const patientId = await response.text();
+
+      setButtonLabel(`${form.name} - ${form.age}岁 - ${form.sex}`);
+      setOpen(false);
+      onCompleted?.({
+        name: form.name,
+        age: form.age,
+        delikaiModeText: channelModeLabels[form.dlk] ?? "--",
+        nicoletModeText: nglModeLabels[form.ngl] ?? "--",
+        yldlModeText: channelModeLabels[form.yldl] ?? "--",
+        patientId,
+        nglMode: form.ngl,
+        dlkMode: form.dlk,
+        yldlMode: form.yldl,
+        alertWeights: {
+          ngl: form.alert.ngl,
+          dlk: form.alert.dlk,
+          yldl: form.alert.yldl,
+        },
+      });
+    } catch (error) {
+      console.error("Failed to register patient:", error);
+      setErrors((prev) => ({ ...prev, submit: "注册失败，请重试" }));
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   function handleOpen() {
