@@ -65,7 +65,7 @@ export default function Home() {
     }
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/data/start`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -98,7 +98,7 @@ export default function Home() {
     }
 
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/data/stop`, {
+      await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/stop`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ record_id: recordId }),
