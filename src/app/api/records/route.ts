@@ -34,6 +34,7 @@ let records = [
     id: "R001",
     patient_id: "P001",
     patient_name: "张三",
+    sex: "男",
     delicaMode: "Two electrode mode",
     nicoletMode: "Single channel mode",
     gloryMode: "Two electrode mode",
@@ -45,6 +46,7 @@ let records = [
     id: "R002",
     patient_id: "P002",
     patient_name: "李四",
+    sex: "女",
     delicaMode: "Four electrode mode",
     nicoletMode: "Two channel mode",
     gloryMode: "Single electrode mode",
@@ -71,7 +73,7 @@ export async function GET(request: NextRequest) {
   const filtered = records.filter((r) => {
     const matchPatientId = patient_id === "" || r.patient_id.includes(patient_id);
     const matchName = name === "" || r.patient_name.includes(name);
-    const matchSex = sex === "";
+    const matchSex = sex === "" || (r.sex && r.sex.includes(sex));
     const matchDelicaMode =
       delica_mode === "" ||
       r.delicaMode.includes(delica_mode) ||

@@ -124,6 +124,8 @@ export default function RecordPage() {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/records?${params.toString()}`
       );
+      console.log('res', res);
+      
       const data = await res.json();
       setRecords(data);
     } catch (error) {
