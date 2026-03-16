@@ -18,9 +18,10 @@ interface Scores {
 
 interface ScorePanelProps {
   isRunning: boolean;
+  onDataReceived?: () => void;
 }
 
-export function ScorePanel({ isRunning }: ScorePanelProps) {
+export function ScorePanel({ isRunning, onDataReceived }: ScorePanelProps) {
   const [scores, setScores] = useState<Scores>({
     ngl: 0,
     dlk: 0,
@@ -61,23 +62,27 @@ export function ScorePanel({ isRunning }: ScorePanelProps) {
       eventSource.onmessage = (event) => {
         try {
           const json = JSON.parse(event.data);
-          if (json.data && json.data.hasData) {
-            const newScores: Scores = {
-              ngl: typeof json.data.ngl === "number" ? json.data.ngl : 0,
-              dlk: typeof json.data.dlk === "number" ? json.data.dlk : 0,
-              yldl: typeof json.data.yldl === "number" ? json.data.yldl : 0,
-              total_score_new: typeof json.data.total_score_new === "number" ? json.data.total_score_new : 0,
-              time: json.data.time,
-              deep_learning_num1: json.data.deep_learning_num1 ?? 0,
-              deep_learning_num0: json.data.deep_learning_num0 ?? 0,
-              xgb_num1: json.data.xgb_num1 ?? 0,
-              xgb_num0: json.data.xgb_num0 ?? 0,
-            };
-            setScores(newScores);
-            setHasFirstData(true);
-          } else if (json.data && !json.data.hasData) {
-            // 首次15s内无数据，标记为已有数据（避免一直请求）
-            setHasFirstData(true);
+          if (json.data) {
+            // 无论 hasData 是 true 还是 false，只要收到数据就触发回调
+            if (!hasFirstData) {
+              setHasFirstData(true);
+              onDataReceived?.();
+            }
+
+            if (json.data.hasData) {
+              const newScores: Scores = {
+                ngl: typeof json.data.ngl === "number" ? json.data.ngl : 0,
+                dlk: typeof json.data.dlk === "number" ? json.data.dlk : 0,
+                yldl: typeof json.data.yldl === "number" ? json.data.yldl : 0,
+                total_score_new: typeof json.data.total_score_new === "number" ? json.data.total_score_new : 0,
+                time: json.data.time,
+                deep_learning_num1: json.data.deep_learning_num1 ?? 0,
+                deep_learning_num0: json.data.deep_learning_num0 ?? 0,
+                xgb_num1: json.data.xgb_num1 ?? 0,
+                xgb_num0: json.data.xgb_num0 ?? 0,
+              };
+              setScores(newScores);
+            }
           }
         } catch (err) {
           console.error("Failed to parse SSE data:", err);

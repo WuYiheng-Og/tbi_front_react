@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart2, Cpu, Monitor, UserRound, Play, Square } from "lucide-react";
+import { BarChart2, Cpu, Monitor, UserRound, Play, Square, Brain, Clock } from "lucide-react";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { PatientInfoDialog, type PatientSummary } from "../components/patient-info-dialog";
 import { ScorePanel } from "../components/score-panel";
@@ -41,7 +41,47 @@ function PatientBadge({ summary }: { summary: PatientSummary }) {
 export default function Home() {
   const [patient, setPatient] = useState<PatientSummary | null>(null);
   const [isRunning, setIsRunning] = useState(false);
+  const [hasReceivedData, setHasReceivedData] = useState(false);
+  const [elapsedTime, setElapsedTime] = useState(0);
   const [rbpData, setRbpData] = useState<Record<string, number[]>>({});
+
+  // 计时器
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout | null = null;
+
+    if (isRunning && hasReceivedData) {
+      intervalId = setInterval(() => {
+        setElapsedTime((prev) => prev + 1);
+      }, 1000);
+    }
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [isRunning, hasReceivedData]);
+
+  // 格式化时间显示
+  const formatTime = (seconds: number) => {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    if (hrs > 0) {
+      return `${hrs.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+    }
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const handleStart = () => {
+    setIsRunning(true);
+    setHasReceivedData(false);
+    setElapsedTime(0);
+  };
+
+  const handleStop = () => {
+    setIsRunning(false);
+  };
 
   // 1. 创建统一的数据缓冲区，使用 useMemo 确保引用在 Home 重绘时不改变
   const dataBuffer = useMemo(() => new Map<string, any[]>(), []);
@@ -151,44 +191,62 @@ export default function Home() {
     };
   }, [isRunning]);
 
-  const handleStart = () => setIsRunning(true);
-  const handleStop = () => setIsRunning(false);
-
   return (
     <div className="flex h-full w-full flex-col bg-dashboard-bg">
       {/* 顶部 Header */}
-      <header className="flex items-center justify-between border-b border-dashboard-border px-8 py-4">
+      <header className="flex items-center justify-between border-b border-dashboard-border px-2 py-2">
         <div className="flex items-center gap-4 flex-1">
           {patient && (
             <>
               <PatientBadge summary={patient} />
-              <ScorePanel isRunning={isRunning} />
+              <ScorePanel isRunning={isRunning} onDataReceived={() => setHasReceivedData(true)} />
             </>
           )}
           {!patient && (
             <h1 className="text-xl font-semibold text-dashboard-text">多模态可视化系统</h1>
           )}
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center justify-center gap-4">
           {patient && (
-            <div className="flex gap-2">
-              {!isRunning ? (
-                <button
-                  onClick={handleStart}
-                  className="flex items-center ml-4 rounded-md bg-green-600 px-6 py-2 text-white hover:bg-green-700 transition-colors"
-                >
-                  <Play className="h-4 w-4" />
-                  开始采集
-                </button>
-              ) : (
-                <button
-                  onClick={handleStop}
-                  className="flex items-center ml-4  rounded-md bg-red-600 px-6 py-2 text-white hover:bg-red-700 transition-colors"
-                >
-                  <Square className="h-4 w-4" />
-                  停止采集
-                </button>
-              )}
+            <div className="flex flex-col gap-2 item-center ml-4">
+              {/* 计时状态区域 - 始终占位防止布局跳动 */}
+              <div className={`flex items-center gap-2 px-1 py-2 rounded-full border min-w-[140px] ${
+                isRunning
+                  ? "bg-slate-700/80 border-slate-600" 
+                  : "bg-red-500/20 border-red-500/50"
+              }`}>
+                <div className={`w-2 h-2 rounded-full ${isRunning ? "bg-green-500 animate-pulse" : "bg-red-500"}`} />
+                <Clock className={`w-4 h-4 ${isRunning ? "text-slate-300" : "text-red-400"}`} />
+                <span className={`text-sm font-medium ${isRunning ? "text-white" : "text-red-200"}`}>
+                  {isRunning ? "采集中 " : "已停止 "}{formatTime(elapsedTime)}
+                </span>
+              </div>
+              <div className="flex gap-2 min-w-[140px]">
+                {!isRunning && hasReceivedData ? (
+                  <button
+                    className="flex items-center ml-4 rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 transition-colors"
+                  >
+                    <Brain className="h-4 w-4" />
+                    点击预测
+                  </button>
+                ) : !isRunning ? (
+                  <button
+                    onClick={handleStart}
+                    className="flex items-center ml-4 rounded-md bg-green-600 px-4 py-2 text-white hover:bg-green-700 transition-colors"
+                  >
+                    <Play className="h-4 w-4" />
+                    开始采集
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleStop}
+                    className="flex items-center ml-4 rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700 transition-colors"
+                  >
+                    <Square className="h-4 w-4" />
+                    停止采集
+                  </button>
+                )}
+              </div>
             </div>
           )}
           {!patient && <PatientInfoDialog onCompleted={setPatient} />}
