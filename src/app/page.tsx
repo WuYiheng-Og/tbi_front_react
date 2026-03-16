@@ -87,7 +87,7 @@ export default function Home() {
         <section className="flex-1 flex flex-col">
 
           {/* 脑电 - 4个指标，占 2 行 (50%) */}
-          <div className="flex-[2] grid grid-cols-2">
+          <div className="flex-[1.7] grid grid-cols-2">
             <EEGCard1 isRunning={isRunning} />
             <EEGCard2 />
             <EEGCard3 />
@@ -101,7 +101,7 @@ export default function Home() {
           </div>
 
           {/* 脑氧 - 2个指标，占 1 行 (25%) */}
-          <div className="flex-1 grid grid-cols-2">
+          <div className="flex-[0.8] grid grid-cols-2">
             <NIRSCard1 />
             <NIRSCard2 />
           </div>

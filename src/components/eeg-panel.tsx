@@ -337,7 +337,7 @@ export function EEGCards({ isRunning = true }: { isRunning?: boolean }) {
       return;
     }
 
-    const es = new EventSource("/api/eeg");
+    const es = new EventSource("/api/monitor");
     esRef.current = es;
 
     es.onmessage = (e) => {
