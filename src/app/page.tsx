@@ -3,6 +3,7 @@
 import { BarChart2, Cpu, Monitor, UserRound, Play, Square } from "lucide-react";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { PatientInfoDialog, type PatientSummary } from "../components/patient-info-dialog";
+import { ScorePanel } from "../components/score-panel";
 import { EEGCard1, EEGCard2, EEGCard3, EEGCard4 } from "../components/eeg-panel";
 import { NIRSCard1, NIRSCard2 } from "../components/nirs-panel";
 import { CBFCard1, CBFCard2 } from "../components/cbf-panel";
@@ -152,7 +153,12 @@ export default function Home() {
       {/* 顶部 Header */}
       <header className="flex items-center justify-between border-b border-dashboard-border px-8 py-4">
         <div className="flex items-center gap-4">
-          {patient && <PatientBadge summary={patient} />}
+          {patient && (
+            <>
+              <PatientBadge summary={patient} />
+              <ScorePanel isRunning={isRunning} />
+            </>
+          )}
           {!patient && (
             <h1 className="text-xl font-semibold text-dashboard-text">多模态可视化系统</h1>
           )}
