@@ -123,20 +123,19 @@ export default function RecordPage() {
       // 构建查询参数
       const params = new URLSearchParams();
       
-      if (filters.patient_id) params.append('patient_id', filters.patient_id);
-      if (filters.name) params.append('name', filters.name);
-      if (filters.sex) params.append('sex', filters.sex);
-      if (filters.delica_mode) params.append('delica_mode', filters.delica_mode);
-      if (filters.nicolet_mode) params.append('nicolet_mode', filters.nicolet_mode);
-      if (filters.glory_mode) params.append('glory_mode', filters.glory_mode);
-      if (filters.collect_datetime) params.append('collect_datetime', filters.collect_datetime);
-      if (filters.end_datetime) params.append('end_datetime', filters.end_datetime);
+      // 不管有没有值，都 append，没有值就传空字符串
+      params.append('patient_id', filters.patient_id || '');
+      params.append('name', filters.name || '');
+      params.append('sex', filters.sex || '');
+      params.append('delica_mode', filters.delica_mode || '');
+      params.append('nicolet_mode', filters.nicolet_mode || '');
+      params.append('glory_mode', filters.glory_mode || '');
+      params.append('collect_datetime', filters.collect_datetime || '');
+      params.append('end_datetime', filters.end_datetime || ''); 
       
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/records?${params.toString()}`
       );
-      console.log("records 请求 URL:", `${process.env.NEXT_PUBLIC_API_BASE_URL}/records?${params.toString()}`);
-      console.log("filters:", filters);
       
       const data = await res.json();
       console.log("records 返回数据:", data);
