@@ -21,7 +21,7 @@ export function useDataStream(
     }
 
     console.log("Connecting to WebSocket...");
-      const ws = new WebSocket(`${process.env.NEXT_PUBLIC_WS_URL}/ws/beike`);
+      const ws = new WebSocket(`${process.env.NEXT_PUBLIC_WS_URL}/ws/beike/`);
     wsRef.current = ws;
 
     ws.onopen = () => {
