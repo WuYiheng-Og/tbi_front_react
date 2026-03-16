@@ -289,8 +289,8 @@ function EEGPanelCell({
             width={DASHBOARD.width}
             height={DASHBOARD.height}
             fill="none"
-            stroke="grey"
-            strokeWidth={3}
+            stroke="#7a919d"
+            strokeWidth={1.5}
           />
 
           {rbpItems.map((item, i) => {
