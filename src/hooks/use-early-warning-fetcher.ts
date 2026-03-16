@@ -18,7 +18,14 @@ interface UseEarlyWarningResult {
   setOnDataReceived: (callback: (() => void) | null) => void;
 }
 
-export function useEarlyWarningFetcher(isRunning: boolean): UseEarlyWarningResult {
+interface EarlyWarningParams {
+  uuid?: string;
+  EEGWeight?: number;
+  CBFWeight?: number;
+  BOWeight?: number;
+}
+
+export function useEarlyWarningFetcher(isRunning: boolean, params?: EarlyWarningParams) {
   const [scores, setScores] = useState<Scores>({
     ngl: 0,
     dlk: 0,
@@ -41,7 +48,7 @@ export function useEarlyWarningFetcher(isRunning: boolean): UseEarlyWarningResul
   }, []);
 
   useEffect(() => {
-    if (!isRunning) {
+    if (!isRunning || !params?.uuid) {
       if (wsRef.current) {
         wsRef.current.close();
         wsRef.current = null;
@@ -61,6 +68,15 @@ export function useEarlyWarningFetcher(isRunning: boolean): UseEarlyWarningResul
 
       ws.onopen = () => {
         console.log("[EarlyWarning] WebSocket connected");
+        // 发送连接参数
+        if (params?.uuid) {
+          ws.send(JSON.stringify({
+            uuid: params.uuid,
+            EEGWeight: params.EEGWeight ?? 5,
+            CBFWeight: params.CBFWeight ?? 3,
+            BOWeight: params.BOWeight ?? 2,
+          }));
+        }
       };
 
       ws.onmessage = (event) => {
@@ -109,7 +125,7 @@ export function useEarlyWarningFetcher(isRunning: boolean): UseEarlyWarningResul
         wsRef.current = null;
       }
     };
-  }, [isRunning, setOnDataReceived]);
+  }, [isRunning, setOnDataReceived, params]);
 
   return { scores, hasFirstData, setOnDataReceived };
 }

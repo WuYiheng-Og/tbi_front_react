@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { PatientInfoDialog, type PatientSummary } from "../components/patient-info-dialog";
 import { ScorePanel } from "../components/score-panel";
 import { EEGCard1, EEGCard2, EEGCard3, EEGCard4 } from "../components/eeg-panel";
@@ -20,10 +20,27 @@ export default function Home() {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [predictionOpen, setPredictionOpen] = useState(false);
   const [patientUuid] = useState("mock-patient-uuid-12345");
+  const [recordId, setRecordId] = useState<string>("");
+  const [isStarting, setIsStarting] = useState(false);
 
   const dataBuffer = useDataBuffer();
-  const rbpData = useRBPFetcher(isRunning);
-  useDataStream(isRunning, dataBuffer, () => setHasReceivedData(true));
+  const rbpData = useRBPFetcher(isRunning, recordId || undefined);
+  
+  const handleDataReceived = useCallback(() => {
+    setHasReceivedData(true);
+  }, []);
+  
+  useDataStream(isRunning, dataBuffer, handleDataReceived, recordId || undefined, 1);
+
+  // 当 recordId 准备好且正在启动时，设置 isRunning
+  useEffect(() => {
+    if (isStarting && recordId) {
+      setIsRunning(true);
+      setHasReceivedData(false);
+      setElapsedTime(0);
+      setIsStarting(false);
+    }
+  }, [recordId, isStarting]);
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout | null = null;
@@ -41,14 +58,58 @@ export default function Home() {
     };
   }, [isRunning, hasReceivedData]);
 
-  const handleStart = () => {
-    setIsRunning(true);
-    setHasReceivedData(false);
-    setElapsedTime(0);
+  const handleStart = async () => {
+    if (!patient?.patientId) {
+      console.error("No patientId available");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/data/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          NicoletMode: patient.nglMode || "4",
+          DelicaMode: patient.dlkMode || "1",
+          GloryMode: patient.yldlMode || "1",
+          id: patient.patientId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to start collection");
+      }
+
+      const newRecordId = await response.text();
+      console.log("Started collection, recordId:", newRecordId);
+
+      // 先设置 recordId，然后通过 useEffect 设置 isRunning
+      setRecordId(newRecordId);
+      setIsStarting(true);
+    } catch (error) {
+      console.error("Failed to start collection:", error);
+    }
   };
 
-  const handleStop = () => {
-    setIsRunning(false);
+  const handleStop = async () => {
+    if (!recordId) {
+      setIsRunning(false);
+      return;
+    }
+
+    try {
+      await fetch("/api/data/stop", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ record_id: recordId }),
+      });
+      console.log("Stopped collection");
+    } catch (error) {
+      console.error("Failed to stop collection:", error);
+    } finally {
+      setIsRunning(false);
+      setRecordId("");
+    }
   };
 
   const handlePredict = () => {
@@ -62,7 +123,12 @@ export default function Home() {
           {patient && (
             <>
               <PatientBadge summary={patient} />
-              <ScorePanel isRunning={isRunning} onDataReceived={() => setHasReceivedData(true)} />
+              <ScorePanel 
+                isRunning={isRunning} 
+                onDataReceived={handleDataReceived} 
+                recordId={recordId}
+                alertWeights={patient.alertWeights}
+              />
             </>
           )}
           {!patient && (

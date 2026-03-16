@@ -12,7 +12,13 @@ import { generateBeikeData, generateRBPData, generateScoresData } from "./ws-moc
 const BEIKE_SAMPLE_RATE = 60;
 const BEIKE_INTERVAL = 1000 / BEIKE_SAMPLE_RATE;
 
-const beikeClients = new Set<WebSocket>();
+interface BeikeClient {
+  ws: WebSocket;
+  uuid?: string;
+  channelNum?: number;
+}
+
+const beikeClients = new Map<WebSocket, BeikeClient>();
 let beikeIntervalId: NodeJS.Timeout | null = null;
 
 function startBeikeBroadcasting() {
@@ -23,8 +29,8 @@ function startBeikeBroadcasting() {
     const message = JSON.stringify(data);
 
     beikeClients.forEach((client) => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(message);
+      if (client.ws.readyState === WebSocket.OPEN) {
+        client.ws.send(message);
       }
     });
   }, BEIKE_INTERVAL);
@@ -41,7 +47,12 @@ function stopBeikeBroadcasting() {
 }
 
 // ============== RBP Data ==============
-const rbpClients = new Set<WebSocket>();
+interface RBPClient {
+  ws: WebSocket;
+  uuid?: string;
+}
+
+const rbpClients = new Map<WebSocket, RBPClient>();
 let rbpIntervalId: NodeJS.Timeout | null = null;
 let rbpTimeoutId: NodeJS.Timeout | null = null;
 
@@ -54,8 +65,8 @@ function startRbpBroadcasting() {
       const message = JSON.stringify(data);
 
       rbpClients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
-          client.send(message);
+        if (client.ws.readyState === WebSocket.OPEN) {
+          client.ws.send(message);
         }
       });
     };
@@ -79,7 +90,15 @@ function stopRbpBroadcasting() {
 }
 
 // ============== Early Warning Data ==============
-const earlyWarningClients = new Set<WebSocket>();
+interface EarlyWarningClient {
+  ws: WebSocket;
+  uuid?: string;
+  EEGWeight?: number;
+  CBFWeight?: number;
+  BOWeight?: number;
+}
+
+const earlyWarningClients = new Map<WebSocket, EarlyWarningClient>();
 let earlyWarningIntervalId: NodeJS.Timeout | null = null;
 let earlyWarningTimeoutId: NodeJS.Timeout | null = null;
 
@@ -92,8 +111,8 @@ function startEarlyWarningBroadcasting() {
       const message = JSON.stringify(data);
 
       earlyWarningClients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
-          client.send(message);
+        if (client.ws.readyState === WebSocket.OPEN) {
+          client.ws.send(message);
         }
       });
     };
@@ -125,11 +144,25 @@ wss.on("connection", (ws: WebSocket, req) => {
 
   if (path === "/ws/beike") {
     console.log("[WS Beike] Client connected");
-    beikeClients.add(ws);
+    beikeClients.set(ws, { ws });
 
     if (beikeClients.size === 1) {
       startBeikeBroadcasting();
     }
+
+    ws.on("message", (data) => {
+      try {
+        const params = JSON.parse(data.toString());
+        const client = beikeClients.get(ws);
+        if (client) {
+          client.uuid = params.uuid;
+          client.channelNum = params.channel_num;
+          console.log("[WS Beike] Received params:", params);
+        }
+      } catch (e) {
+        console.error("[WS Beike] Failed to parse message:", e);
+      }
+    });
 
     ws.on("close", () => {
       console.log("[WS Beike] Client disconnected");
@@ -140,11 +173,24 @@ wss.on("connection", (ws: WebSocket, req) => {
     });
   } else if (path === "/ws/rbp") {
     console.log("[WS RBP] Client connected");
-    rbpClients.add(ws);
+    rbpClients.set(ws, { ws });
 
     if (rbpClients.size === 1) {
       startRbpBroadcasting();
     }
+
+    ws.on("message", (data) => {
+      try {
+        const params = JSON.parse(data.toString());
+        const client = rbpClients.get(ws);
+        if (client) {
+          client.uuid = params.uuid;
+          console.log("[WS RBP] Received params:", params);
+        }
+      } catch (e) {
+        console.error("[WS RBP] Failed to parse message:", e);
+      }
+    });
 
     ws.on("close", () => {
       console.log("[WS RBP] Client disconnected");
@@ -155,11 +201,27 @@ wss.on("connection", (ws: WebSocket, req) => {
     });
   } else if (path === "/ws/early_warning") {
     console.log("[WS Early Warning] Client connected");
-    earlyWarningClients.add(ws);
+    earlyWarningClients.set(ws, { ws });
 
     if (earlyWarningClients.size === 1) {
       startEarlyWarningBroadcasting();
     }
+
+    ws.on("message", (data) => {
+      try {
+        const params = JSON.parse(data.toString());
+        const client = earlyWarningClients.get(ws);
+        if (client) {
+          client.uuid = params.uuid;
+          client.EEGWeight = params.EEGWeight;
+          client.CBFWeight = params.CBFWeight;
+          client.BOWeight = params.BOWeight;
+          console.log("[WS Early Warning] Received params:", params);
+        }
+      } catch (e) {
+        console.error("[WS Early Warning] Failed to parse message:", e);
+      }
+    });
 
     ws.on("close", () => {
       console.log("[WS Early Warning] Client disconnected");

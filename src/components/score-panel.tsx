@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { AlertCard } from "./alert-card";
 import { TotalScoreCard } from "./total-score-card";
 import { useEarlyWarningFetcher, Scores } from "@/hooks/use-early-warning-fetcher";
@@ -8,10 +8,26 @@ import { useEarlyWarningFetcher, Scores } from "@/hooks/use-early-warning-fetche
 interface ScorePanelProps {
   isRunning: boolean;
   onDataReceived?: () => void;
+  recordId?: string;
+  alertWeights?: {
+    ngl: string;
+    dlk: string;
+    yldl: string;
+  };
 }
 
-export function ScorePanel({ isRunning, onDataReceived }: ScorePanelProps) {
-  const { scores, hasFirstData, setOnDataReceived } = useEarlyWarningFetcher(isRunning);
+export function ScorePanel({ isRunning, onDataReceived, recordId, alertWeights }: ScorePanelProps) {
+  const params = useMemo(() => {
+    if (!recordId) return undefined;
+    return {
+      uuid: recordId,
+      EEGWeight: alertWeights ? parseInt(alertWeights.ngl) : 5,
+      CBFWeight: alertWeights ? parseInt(alertWeights.dlk) : 3,
+      BOWeight: alertWeights ? parseInt(alertWeights.yldl) : 2,
+    };
+  }, [recordId, alertWeights]);
+
+  const { scores, hasFirstData, setOnDataReceived } = useEarlyWarningFetcher(isRunning, params);
   const [internalHasFirstData, setInternalHasFirstData] = useState(false);
 
   useEffect(() => {

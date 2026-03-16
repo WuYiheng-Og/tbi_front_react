@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 
-export function useRBPFetcher(isRunning: boolean) {
+export function useRBPFetcher(isRunning: boolean, uuid?: string) {
   const [rbpData, setRbpData] = useState<Record<string, number[]>>({});
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    if (!isRunning) {
+    if (!isRunning || !uuid) {
       if (wsRef.current) {
         wsRef.current.close();
         wsRef.current = null;
@@ -24,6 +24,10 @@ export function useRBPFetcher(isRunning: boolean) {
 
       ws.onopen = () => {
         console.log("[RBP] WebSocket connected");
+        // 发送连接参数
+        if (uuid) {
+          ws.send(JSON.stringify({ uuid }));
+        }
       };
 
       ws.onmessage = (event) => {
@@ -68,7 +72,7 @@ export function useRBPFetcher(isRunning: boolean) {
         wsRef.current = null;
       }
     };
-  }, [isRunning]);
+  }, [isRunning, uuid]);
 
   return rbpData;
 }

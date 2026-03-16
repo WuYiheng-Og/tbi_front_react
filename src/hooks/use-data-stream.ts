@@ -9,11 +9,13 @@ interface DataBuffer {
 export function useDataStream(
   isRunning: boolean,
   dataBuffer: DataBuffer,
-  onDataReceived: () => void
+  onDataReceived: () => void,
+  uuid?: string,
+  channelNum?: number
 ) {
   const wsRef = useRef<WebSocket | null>(null);
 
-  const connect = useCallback(() => {
+    const connect = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       return;
     }
@@ -24,6 +26,10 @@ export function useDataStream(
 
     ws.onopen = () => {
       console.log("WebSocket connected");
+      // 发送连接参数
+      if (uuid && channelNum) {
+        ws.send(JSON.stringify({ uuid, channel_num: channelNum }));
+      }
     };
 
     ws.onmessage = (event) => {
@@ -65,7 +71,7 @@ export function useDataStream(
       console.log("WebSocket disconnected");
       wsRef.current = null;
     };
-  }, [dataBuffer, onDataReceived]);
+  }, [dataBuffer, onDataReceived, uuid, channelNum]);
 
   const disconnect = useCallback(() => {
     if (wsRef.current) {
@@ -76,7 +82,7 @@ export function useDataStream(
   }, []);
 
   useEffect(() => {
-    if (!isRunning) {
+    if (!isRunning || !uuid) {
       disconnect();
       return;
     }
@@ -89,5 +95,5 @@ export function useDataStream(
     return () => {
       disconnect();
     };
-  }, [isRunning, dataBuffer, connect, disconnect]);
+  }, [isRunning, dataBuffer, connect, disconnect, uuid]);
 }
