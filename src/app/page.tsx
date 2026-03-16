@@ -1,7 +1,7 @@
 "use client";
 
 import { BarChart2, Cpu, Monitor, UserRound, Play, Square } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { PatientInfoDialog, type PatientSummary } from "../components/patient-info-dialog";
 import { EEGCard1, EEGCard2, EEGCard3, EEGCard4 } from "../components/eeg-panel";
 import { NIRSCard1, NIRSCard2 } from "../components/nirs-panel";
@@ -10,7 +10,6 @@ import { CBFCard1, CBFCard2 } from "../components/cbf-panel";
 function PatientBadge({ summary }: { summary: PatientSummary }) {
   return (
     <div className="flex items-center gap-5 text-white">
-      {/* 左侧：头像 + 姓名 + 年龄（竖向） */}
       <div className="flex flex-col items-center gap-1">
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#0e4a5c]">
           <UserRound className="h-6 w-6 text-[#ff7f27]" />
@@ -18,7 +17,6 @@ function PatientBadge({ summary }: { summary: PatientSummary }) {
         <span className="text-sm font-medium">{summary.name || "未知"}</span>
         <span className="text-xs text-white/90">{summary.age || "--"}岁</span>
       </div>
-      {/* 右侧：圆角面板，三条设备信息（橙色图标 + 白字） */}
       <div className="rounded-lg bg-[#0d3540] px-4 py-3">
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
@@ -43,6 +41,69 @@ export default function Home() {
   const [patient, setPatient] = useState<PatientSummary | null>(null);
   const [isRunning, setIsRunning] = useState(false);
 
+  // 1. 创建统一的数据缓冲区，使用 useMemo 确保引用在 Home 重绘时不改变
+  const dataBuffer = useMemo(() => new Map<string, any[]>(), []);
+
+  // 2. 数据请求与分发逻辑
+  useEffect(() => {
+    // 只有在运行状态下才开启请求
+    if (!isRunning) {
+      return;
+    }
+
+    // 初始化/清空所有通道的缓冲区
+    const channels = ["eeg", "rSO2-1", "rSO2-2", "one-1", "two-1"];
+    channels.forEach(key => dataBuffer.set(key, []));
+
+    console.log("Starting data stream...");
+    const es = new EventSource("/api/monitor");
+
+    es.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        // console.log('data', data);
+        
+        // 分发 EEG 数据 
+      if (data.eeg) {
+        // 遍历 eeg 对象中的每一个 key (如 EEGData_F3_Ref, EEGData_F4_Ref 等)
+        Object.entries(data.eeg).forEach(([key, value]) => {
+          // 如果这个 key 的 buffer 不存在，先创建
+          if (!dataBuffer.has(key)) {
+            dataBuffer.set(key, []);
+          }
+          // 将属于该通道的数值 push 进它自己的 buffer
+          dataBuffer.get(key)?.push(value);
+        });
+      }
+
+        // 分发 NIRS 数据 (来自 yldl 字段)
+        if (data.yldl) {
+          if (data.yldl["rSO2-1"] !== undefined) dataBuffer.get("rSO2-1")?.push(data.yldl["rSO2-1"]);
+          if (data.yldl["rSO2-2"] !== undefined) dataBuffer.get("rSO2-2")?.push(data.yldl["rSO2-2"]);
+        }
+
+        // 分发 CBF 数据 (来自 dlk 字段)
+        if (data.dlk) {
+          dataBuffer.get("one-1")?.push(data.dlk);
+          dataBuffer.get("two-1")?.push(data.dlk);
+        }
+      } catch (err) {
+        console.error("Failed to parse SSE data:", err);
+      }
+    };
+
+    es.onerror = (err) => {
+      console.error("EventSource failed:", err);
+      es.close();
+    };
+
+    // 组件卸载或停止运行时关闭连接
+    return () => {
+      console.log("Closing data stream...");
+      es.close();
+    };
+  }, [isRunning, dataBuffer]);
+
   const handleStart = () => setIsRunning(true);
   const handleStop = () => setIsRunning(false);
 
@@ -53,7 +114,7 @@ export default function Home() {
         <div className="flex items-center gap-4">
           {patient && <PatientBadge summary={patient} />}
           {!patient && (
-            <h1 className="text-xl font-semibold text-dashboard-text">多模态可视化</h1>
+            <h1 className="text-xl font-semibold text-dashboard-text">多模态可视化系统</h1>
           )}
         </div>
         <div className="flex items-center gap-4">
@@ -62,18 +123,18 @@ export default function Home() {
               {!isRunning ? (
                 <button
                   onClick={handleStart}
-                  className="flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-white hover:bg-green-700"
+                  className="flex items-center gap-2 rounded-md bg-green-600 px-6 py-2 text-white hover:bg-green-700 transition-colors"
                 >
                   <Play className="h-4 w-4" />
-                  开始
+                  开始采集
                 </button>
               ) : (
                 <button
                   onClick={handleStop}
-                  className="flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700"
+                  className="flex items-center gap-2 rounded-md bg-red-600 px-6 py-2 text-white hover:bg-red-700 transition-colors"
                 >
                   <Square className="h-4 w-4" />
-                  结束
+                  停止采集
                 </button>
               )}
             </div>
@@ -82,28 +143,28 @@ export default function Home() {
         </div>
       </header>
 
-      {/* 主体区域：两列四行布局 */}
-      <main className="flex flex-1 flex-col">
-        <section className="flex-1 flex flex-col">
+      {/* 主体区域：数据可视化面板 */}
+      <main className="flex flex-1 flex-col overflow-hidden">
+        <section className="flex-1 flex flex-col p-2 gap-2">
 
-          {/* 脑电 - 4个指标，占 2 行 (50%) */}
-          <div className="flex-[1.7] grid grid-cols-2">
-            <EEGCard1 isRunning={isRunning} />
-            <EEGCard2 />
-            <EEGCard3 />
-            <EEGCard4 />
+          {/* 脑电 EEG - 占上方大部分空间 */}
+          <div className="flex-[1.7] grid grid-cols-2 gap-2">
+            <EEGCard1 isRunning={isRunning} dataBuffer={dataBuffer} />
+            <EEGCard2 isRunning={isRunning} dataBuffer={dataBuffer} />
+            <EEGCard3 isRunning={isRunning} dataBuffer={dataBuffer} />
+            <EEGCard4 isRunning={isRunning} dataBuffer={dataBuffer} />
           </div> 
 
-          {/* 脑血流 - 2个指标，占 1 行 (25%) */}
-          <div className="flex-1 grid grid-cols-2">
-            <CBFCard1 />
-            <CBFCard2 />
+          {/* 脑血流 CBF */}
+          <div className="flex-1 grid grid-cols-2 gap-2">
+            <CBFCard1 isRunning={isRunning} dataBuffer={dataBuffer} />
+            <CBFCard2 isRunning={isRunning} dataBuffer={dataBuffer} />
           </div>
 
-          {/* 脑氧 - 2个指标，占 1 行 (25%) */}
-          <div className="flex-[0.8] grid grid-cols-2">
-            <NIRSCard1 />
-            <NIRSCard2 />
+          {/* 脑氧 NIRS */}
+          <div className="flex-[0.8] grid grid-cols-2 gap-2">
+            <NIRSCard1 isRunning={isRunning} dataBuffer={dataBuffer} />
+            <NIRSCard2 isRunning={isRunning} dataBuffer={dataBuffer} />
           </div>
 
         </section>
