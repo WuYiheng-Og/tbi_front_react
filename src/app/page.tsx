@@ -40,6 +40,7 @@ function PatientBadge({ summary }: { summary: PatientSummary }) {
 export default function Home() {
   const [patient, setPatient] = useState<PatientSummary | null>(null);
   const [isRunning, setIsRunning] = useState(false);
+  const [rbpData, setRbpData] = useState<Record<string, number[]>>({});
 
   // 1. 创建统一的数据缓冲区，使用 useMemo 确保引用在 Home 重绘时不改变
   const dataBuffer = useMemo(() => new Map<string, any[]>(), []);
@@ -62,19 +63,19 @@ export default function Home() {
       try {
         const data = JSON.parse(event.data);
         // console.log('data', data);
-        
-        // 分发 EEG 数据 
-      if (data.eeg) {
-        // 遍历 eeg 对象中的每一个 key (如 EEGData_F3_Ref, EEGData_F4_Ref 等)
-        Object.entries(data.eeg).forEach(([key, value]) => {
-          // 如果这个 key 的 buffer 不存在，先创建
-          if (!dataBuffer.has(key)) {
-            dataBuffer.set(key, []);
-          }
-          // 将属于该通道的数值 push 进它自己的 buffer
-          dataBuffer.get(key)?.push(value);
-        });
-      }
+
+        // 分发 EEG 数据
+        if (data.eeg) {
+          // 遍历 eeg 对象中的每一个 key (如 EEGData_F3_Ref, EEGData_F4_Ref 等)
+          Object.entries(data.eeg).forEach(([key, value]) => {
+            // 如果这个 key 的 buffer 不存在，先创建
+            if (!dataBuffer.has(key)) {
+              dataBuffer.set(key, []);
+            }
+            // 将属于该通道的数值 push 进它自己的 buffer
+            dataBuffer.get(key)?.push(value);
+          });
+        }
 
         // 分发 NIRS 数据 (来自 yldl 字段)
         if (data.yldl) {
@@ -103,6 +104,45 @@ export default function Home() {
       es.close();
     };
   }, [isRunning, dataBuffer]);
+
+  // 3. RBP 数据请求
+  useEffect(() => {
+    if (!isRunning) {
+      // 停止采集时不清空数据，保留最后一次的 RBP 饼图
+      return;
+    }
+
+    const fetchRBP = async () => {
+      try {
+        const res = await fetch("/api/rbp");
+        const json = await res.json();
+        if (json.data) {
+          // RBPData_xx_Ref -> EEGData_xx_Ref 映射
+          const mapping: Record<string, string> = {
+            "RBPData_F3_Ref": "EEGData_F3_Ref",
+            "RBPData_P3_Ref": "EEGData_P3_Ref",
+            "RBPData_F4_Ref": "EEGData_F4_Ref",
+            "RBPData_P4_Ref": "EEGData_P4_Ref",
+          };
+
+          const mappedData: Record<string, number[]> = {};
+          Object.entries(mapping).forEach(([rbpKey, eegKey]) => {
+            if (json.data[rbpKey]) {
+              mappedData[eegKey] = json.data[rbpKey].slice(0, 4);
+            }
+          });
+          setRbpData(mappedData);
+        }
+      } catch (err) {
+        console.error("Failed to fetch RBP data:", err);
+      }
+    };
+
+    fetchRBP();
+    const interval = setInterval(fetchRBP, 15000);
+
+    return () => clearInterval(interval);
+  }, [isRunning]);
 
   const handleStart = () => setIsRunning(true);
   const handleStop = () => setIsRunning(false);
@@ -149,10 +189,10 @@ export default function Home() {
 
           {/* 脑电 EEG - 占上方大部分空间 */}
           <div className="flex-[1.7] grid grid-cols-2 gap-2">
-            <EEGCard1 isRunning={isRunning} dataBuffer={dataBuffer} />
-            <EEGCard2 isRunning={isRunning} dataBuffer={dataBuffer} />
-            <EEGCard3 isRunning={isRunning} dataBuffer={dataBuffer} />
-            <EEGCard4 isRunning={isRunning} dataBuffer={dataBuffer} />
+            <EEGCard1 isRunning={isRunning} dataBuffer={dataBuffer} rbpData={rbpData} />
+            <EEGCard2 isRunning={isRunning} dataBuffer={dataBuffer} rbpData={rbpData} />
+            <EEGCard3 isRunning={isRunning} dataBuffer={dataBuffer} rbpData={rbpData} />
+            <EEGCard4 isRunning={isRunning} dataBuffer={dataBuffer} rbpData={rbpData} />
           </div> 
 
           {/* 脑血流 CBF */}
