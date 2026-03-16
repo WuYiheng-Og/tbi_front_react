@@ -13,6 +13,11 @@ interface Patient {
   address: string;
   phone: string;
   remark: string;
+  delicaMode: string;
+  nicoletMode: string;
+  gloryMode: string;
+  collectDateTime: string;
+  endDateTime: string;
 }
 
 // 记录类型定义
@@ -83,7 +88,7 @@ export default function RecordPage() {
       if (searchName) {
         params.set("name", searchName);
       }
-      const res = await fetch(`/api/patients?${params}`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/patients?${params}`);
       const data = await res.json();
       setPatients(data);
     } catch (error) {
@@ -91,11 +96,34 @@ export default function RecordPage() {
     }
   };
 
-  // 获取记录列表
-  const fetchRecords = async (patientId: string) => {
+  // 获取记录列表(可以按照条件查询)
+  const fetchRecords = async (filters: {
+    patient_id?: string;
+    name?: string;
+    sex?: string;
+    delica_mode?: string;
+    nicolet_mode?: string;
+    glory_mode?: string;
+    collect_datetime?: string;
+    end_datetime?: string;
+  }) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/records?patient_id=${patientId}`);
+      // 构建查询参数
+      const params = new URLSearchParams();
+      
+      if (filters.patient_id) params.append('patient_id', filters.patient_id);
+      if (filters.name) params.append('name', filters.name);
+      if (filters.sex) params.append('sex', filters.sex);
+      if (filters.delica_mode) params.append('delica_mode', filters.delica_mode);
+      if (filters.nicolet_mode) params.append('nicolet_mode', filters.nicolet_mode);
+      if (filters.glory_mode) params.append('glory_mode', filters.glory_mode);
+      if (filters.collect_datetime) params.append('collect_datetime', filters.collect_datetime);
+      if (filters.end_datetime) params.append('end_datetime', filters.end_datetime);
+      
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/records?${params.toString()}`
+      );
       const data = await res.json();
       setRecords(data);
     } catch (error) {
@@ -121,7 +149,7 @@ export default function RecordPage() {
   // 选中患者时获取记录
   useEffect(() => {
     if (selectedPatient) {
-      fetchRecords(selectedPatient.id);
+      fetchRecords({ patient_id: selectedPatient.id, name: selectedPatient.name, sex: selectedPatient.sex, delica_mode: selectedPatient.delicaMode, nicolet_mode: selectedPatient.nicoletMode, glory_mode: selectedPatient.gloryMode, collect_datetime: selectedPatient.collectDateTime, end_datetime: selectedPatient.endDateTime });
     } else {
       setRecords([]);
     }
@@ -141,7 +169,7 @@ export default function RecordPage() {
   // 保存备注
   const handleSaveRemark = async (recordId: string) => {
     try {
-      const res = await fetch("/api/records/remark", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/records/remark`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ record_id: recordId, remark: remarkValue }),
@@ -171,7 +199,7 @@ export default function RecordPage() {
     if (!confirm("确定要删除这条记录吗？")) return;
 
     try {
-      const res = await fetch("/api/records", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/records`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ record_id: recordId }),
@@ -187,7 +215,7 @@ export default function RecordPage() {
   // 刷新当前患者记录
   const handleRefresh = () => {
     if (selectedPatient) {
-      fetchRecords(selectedPatient.id);
+      fetchRecords({ patient_id: selectedPatient.id, name: selectedPatient.name, sex: selectedPatient.sex, delica_mode: selectedPatient.delicaMode, nicolet_mode: selectedPatient.nicoletMode, glory_mode: selectedPatient.gloryMode, collect_datetime: selectedPatient.collectDateTime, end_datetime: selectedPatient.endDateTime });
     }
   };
 
@@ -226,7 +254,7 @@ export default function RecordPage() {
     if (!editingPatient) return;
 
     try {
-      const res = await fetch("/api/patients", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/patients`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ patient_id: editingPatient.id, ...patientForm }),
@@ -260,7 +288,7 @@ export default function RecordPage() {
     if (!confirm("确定要删除该患者吗？删除后该患者的所有记录也会被删除。")) return;
 
     try {
-      const res = await fetch("/api/patients", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/patients`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ patient_id: patientId }),

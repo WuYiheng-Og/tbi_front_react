@@ -63,7 +63,7 @@ export function useEarlyWarningFetcher(isRunning: boolean, params?: EarlyWarning
       }
 
       console.log("[EarlyWarning] Connecting to WebSocket...");
-      const ws = new WebSocket("ws://localhost:8081/ws/early_warning");
+      const ws = new WebSocket(`${process.env.NEXT_PUBLIC_WS_URL}/ws/early_warning`);
       wsRef.current = ws;
 
       ws.onopen = () => {

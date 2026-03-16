@@ -19,7 +19,7 @@ export function useRBPFetcher(isRunning: boolean, uuid?: string) {
       }
 
       console.log("[RBP] Connecting to WebSocket...");
-      const ws = new WebSocket("ws://localhost:8081/ws/rbp");
+      const ws = new WebSocket(`${process.env.NEXT_PUBLIC_WS_URL}/ws/rbp`);
       wsRef.current = ws;
 
       ws.onopen = () => {

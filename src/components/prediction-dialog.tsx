@@ -115,7 +115,7 @@ export function PredictionDialog({ uuid, open, onOpenChange }: PredictionDialogP
 
   // 预测 API
   const predictAPI = async (patientUuid: string): Promise<void> => {
-    const response = await fetch("/api/prediction", {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/prediction`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ uuid: patientUuid }),
@@ -221,7 +221,7 @@ export function PredictionDialog({ uuid, open, onOpenChange }: PredictionDialogP
     feedback: PostOpStatus[];
     clinicalInfo: { anesthesia: "yes" | "no" | null; complicationLevel: 1 | 2 | 3 | null };
   }): Promise<void> => {
-    await fetch("/api/feedback", {
+    await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/feedback`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
