@@ -50,6 +50,7 @@ export default function RecordPage() {
   };
 
   const transferChannel = (value: string) => {
+    console.log('value', value);
     switch (value) {
       case "Single channel mode":
         return "单通道";
@@ -649,19 +650,19 @@ export default function RecordPage() {
                           <div>
                             <span className="text-dashboard-muted">Delica模式：</span>
                             <span className="text-dashboard-text">
-                              {transferElectrode(record.delicaMode)}
+                              {transferChannel(record.delicaMode)}  {/* Delica 是通道模式 */}
                             </span>
                           </div>
                           <div>
                             <span className="text-dashboard-muted">Nicolet模式：</span>
                             <span className="text-dashboard-text">
-                              {transferChannel(record.nicoletMode)}
+                              {transferElectrode(record.nicoletMode)}  {/* Nicolet 是电极模式 */}
                             </span>
                           </div>
                           <div>
                             <span className="text-dashboard-muted">Glory模式：</span>
                             <span className="text-dashboard-text">
-                              {transferElectrode(record.gloryMode)}
+                              {transferChannel(record.gloryMode)}  {/* Glory 是通道模式 */}
                             </span>
                           </div>
                         </div>
