@@ -11,26 +11,32 @@ export async function GET() {
       let isFirst = true;
 
       const sendData = () => {
-        const now = Date.now();
-        const mockData = {
-          hasData: !isFirst,
-          time: [now - 15000, now] as [number, number],
-          ngl: parseFloat((Math.random() * 40 + 60).toFixed(2)),
-          dlk: parseFloat((Math.random() * 40 + 60).toFixed(2)),
-          yldl: parseFloat((Math.random() * 40 + 60).toFixed(2)),
-          sum: parseFloat((Math.random() * 40 + 60).toFixed(2)),
-          deep_learning_num1: Math.floor(Math.random() * 100),
-          deep_learning_num0: Math.floor(Math.random() * 100),
-          xgb_num1: Math.floor(Math.random() * 100),
-          xgb_num0: Math.floor(Math.random() * 100),
-          total_score_new: parseFloat((Math.random() * 40 + 60).toFixed(2)),
-        };
+        try {
+          const now = Date.now();
+          const mockData = {
+            hasData: !isFirst,
+            time: [now - 15000, now] as [number, number],
+            ngl: parseFloat((Math.random() * 40 + 60).toFixed(2)),
+            dlk: parseFloat((Math.random() * 40 + 60).toFixed(2)),
+            yldl: parseFloat((Math.random() * 40 + 60).toFixed(2)),
+            sum: parseFloat((Math.random() * 40 + 60).toFixed(2)),
+            deep_learning_num1: Math.floor(Math.random() * 100),
+            deep_learning_num0: Math.floor(Math.random() * 100),
+            xgb_num1: Math.floor(Math.random() * 100),
+            xgb_num0: Math.floor(Math.random() * 100),
+            total_score_new: parseFloat((Math.random() * 40 + 60).toFixed(2)),
+          };
 
-        const message = `data: ${JSON.stringify({ data: mockData })}\n\n`;
-        controller.enqueue(encoder.encode(message));
+          const message = `data: ${JSON.stringify({ data: mockData })}\n\n`;
+          controller.enqueue(encoder.encode(message));
 
-        if (isFirst) {
-          isFirst = false;
+          if (isFirst) {
+            isFirst = false;
+          }
+        } catch {
+          if (intervalId) {
+            clearInterval(intervalId);
+          }
         }
       };
 

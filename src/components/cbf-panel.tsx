@@ -216,7 +216,7 @@ interface CBFCardProps {
 export function CBFCard1({ isRunning, dataBuffer }: CBFCardProps) {
   return (
     <CBFPanelCell 
-      channelLabel="one-1_Env_U" 
+      channelLabel="1-1 Env U" 
       channelPrefix="one-1" 
       dataBuffer={dataBuffer} 
       isRunning={isRunning} 
@@ -227,7 +227,7 @@ export function CBFCard1({ isRunning, dataBuffer }: CBFCardProps) {
 export function CBFCard2({ isRunning, dataBuffer }: CBFCardProps) {
   return (
     <CBFPanelCell 
-      channelLabel="two-1_Env_U" 
+      channelLabel="2-1 Env U" 
       channelPrefix="two-1" 
       dataBuffer={dataBuffer} 
       isRunning={isRunning} 
