@@ -1,6 +1,9 @@
-import { NextRequest } from "next/server";
-
-export const dynamic = "force-dynamic";
+/**
+ * WebSocket Server for /ws/beike
+ * Simulates the monitor data stream (EEG, DLK, YLDL) at 60Hz
+ * 
+ * Run with: npx tsx scripts/ws-beike-server.ts
+ */
 
 const SAMPLE_RATE = 60;
 const INTERVAL = 1000 / SAMPLE_RATE;
@@ -38,33 +41,60 @@ function generateMockData() {
   };
 }
 
-export async function GET(req: NextRequest) {
-  const encoder = new TextEncoder();
+const clients = new Set<any>();
+let intervalId: NodeJS.Timeout | null = null;
 
-  const stream = new ReadableStream({
-    start(controller) {
-      const sendData = () => {
-        const data = generateMockData();
-        const sseData = `data: ${JSON.stringify(data)}\n\n`;
-        controller.enqueue(encoder.encode(sseData));
-      };
-
-      sendData();
-
-      const timer = setInterval(sendData, INTERVAL);
-
-      req.signal.addEventListener("abort", () => {
-        clearInterval(timer);
-        controller.close();
-      });
-    },
-  });
-
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-    },
-  });
+function startBroadcasting() {
+  if (intervalId) return;
+  
+  intervalId = setInterval(() => {
+    const data = generateMockData();
+    const message = JSON.stringify(data);
+    
+    clients.forEach((client) => {
+      if (client.readyState === 1) { // WebSocket.OPEN
+        client.send(message);
+      }
+    });
+  }, INTERVAL);
+  
+  console.log(`[WS Beike] Broadcasting at ${SAMPLE_RATE}Hz`);
 }
+
+function stopBroadcasting() {
+  if (intervalId) {
+    clearInterval(intervalId);
+    intervalId = null;
+    console.log("[WS Beike] Stopped broadcasting");
+  }
+}
+
+import { WebSocketServer, WebSocket } from "ws";
+
+const wss = new WebSocketServer({ port: 8081 });
+
+wss.on("connection", (ws: WebSocket) => {
+  console.log("[WS Beike] Client connected");
+  clients.add(ws);
+  
+  // Start broadcasting when first client connects
+  if (clients.size === 1) {
+    startBroadcasting();
+  }
+
+  ws.on("close", () => {
+    console.log("[WS Beike] Client disconnected");
+    clients.delete(ws);
+    
+    // Stop broadcasting when no clients remain
+    if (clients.size === 0) {
+      stopBroadcasting();
+    }
+  });
+
+  ws.on("error", (error) => {
+    console.error("[WS Beike] WebSocket error:", error);
+  });
+});
+
+console.log("[WS Beike] Server running on ws://localhost:8081/ws/beike");

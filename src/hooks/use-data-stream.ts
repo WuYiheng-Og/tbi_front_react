@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useCallback } from "react";
 
 interface DataBuffer {
   get(key: string): number[] | undefined;
@@ -11,18 +11,22 @@ export function useDataStream(
   dataBuffer: DataBuffer,
   onDataReceived: () => void
 ) {
-  useEffect(() => {
-    if (!isRunning) {
+  const wsRef = useRef<WebSocket | null>(null);
+
+  const connect = useCallback(() => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
       return;
     }
 
-    const channels = ["eeg", "rSO2-1", "rSO2-2", "one-1", "two-1"];
-    channels.forEach((key) => dataBuffer.set(key, []));
+    console.log("Connecting to WebSocket...");
+    const ws = new WebSocket("ws://localhost:8081/ws/beike");
+    wsRef.current = ws;
 
-    console.log("Starting data stream...");
-    const es = new EventSource("/api/monitor");
+    ws.onopen = () => {
+      console.log("WebSocket connected");
+    };
 
-    es.onmessage = (event) => {
+    ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
 
@@ -49,18 +53,41 @@ export function useDataStream(
           dataBuffer.get("two-1")?.push(data.dlk);
         }
       } catch (err) {
-        console.error("Failed to parse SSE data:", err);
+        console.error("Failed to parse WebSocket data:", err);
       }
     };
 
-    es.onerror = (err) => {
-      console.error("EventSource failed:", err);
-      es.close();
+    ws.onerror = (error) => {
+      console.error("WebSocket error:", error);
     };
 
-    return () => {
-      console.log("Closing data stream...");
-      es.close();
+    ws.onclose = () => {
+      console.log("WebSocket disconnected");
+      wsRef.current = null;
     };
-  }, [isRunning, dataBuffer, onDataReceived]);
+  }, [dataBuffer, onDataReceived]);
+
+  const disconnect = useCallback(() => {
+    if (wsRef.current) {
+      console.log("Closing WebSocket...");
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isRunning) {
+      disconnect();
+      return;
+    }
+
+    const channels = ["eeg", "rSO2-1", "rSO2-2", "one-1", "two-1"];
+    channels.forEach((key) => dataBuffer.set(key, []));
+
+    connect();
+
+    return () => {
+      disconnect();
+    };
+  }, [isRunning, dataBuffer, connect, disconnect]);
 }
