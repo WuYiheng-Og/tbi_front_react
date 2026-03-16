@@ -2,15 +2,41 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
+function transferElectrode(value: string) {
+  switch (value) {
+    case "Single electrode mode":
+      return "一电极";
+    case "Two electrode mode":
+      return "二电极";
+    case "Three electrode mode":
+      return "三电极";
+    case "Four electrode mode":
+      return "四电极";
+    default:
+      return "未知电极";
+  }
+}
+
+function transferChannel(value: string) {
+  switch (value) {
+    case "Single channel mode":
+      return "单通道";
+    case "Two channel mode":
+      return "双通道";
+    default:
+      return "未知通道";
+  }
+}
+
 // Mock 记录数据
 let records = [
   {
     id: "R001",
     patient_id: "P001",
     patient_name: "张三",
-    delicaMode: "2",
-    nicoletMode: "4",
-    gloryMode: "2",
+    delicaMode: "Two electrode mode",
+    nicoletMode: "Single channel mode",
+    gloryMode: "Two electrode mode",
     collectDateTime: "2024-01-15 10:30:00",
     endDateTime: "2024-01-15 11:30:00",
     remark: "正常采集",
@@ -19,9 +45,9 @@ let records = [
     id: "R002",
     patient_id: "P002",
     patient_name: "李四",
-    delicaMode: "2",
-    nicoletMode: "4",
-    gloryMode: "2",
+    delicaMode: "Four electrode mode",
+    nicoletMode: "Two channel mode",
+    gloryMode: "Single electrode mode",
     collectDateTime: "2024-01-16 14:00:00",
     endDateTime: "2024-01-16 15:00:00",
     remark: "采集顺利完成",
@@ -45,10 +71,19 @@ export async function GET(request: NextRequest) {
   const filtered = records.filter((r) => {
     const matchPatientId = patient_id === "" || r.patient_id.includes(patient_id);
     const matchName = name === "" || r.patient_name.includes(name);
-    const matchSex = sex === ""; // 暂时不支持，按 patient_name 已有数据
-    const matchDelicaMode = delica_mode === "" || r.delicaMode.includes(delica_mode);
-    const matchNicoletMode = nicolet_mode === "" || r.nicoletMode.includes(nicolet_mode);
-    const matchGloryMode = glory_mode === "" || r.gloryMode.includes(glory_mode);
+    const matchSex = sex === "";
+    const matchDelicaMode =
+      delica_mode === "" ||
+      r.delicaMode.includes(delica_mode) ||
+      transferElectrode(r.delicaMode).includes(delica_mode);
+    const matchNicoletMode =
+      nicolet_mode === "" ||
+      r.nicoletMode.includes(nicolet_mode) ||
+      transferChannel(r.nicoletMode).includes(nicolet_mode);
+    const matchGloryMode =
+      glory_mode === "" ||
+      r.gloryMode.includes(glory_mode) ||
+      transferElectrode(r.gloryMode).includes(glory_mode);
     const matchCollectDatetime = collect_datetime === "" || r.collectDateTime === collect_datetime;
     const matchEndDatetime = end_datetime === "" || r.endDateTime === end_datetime;
 

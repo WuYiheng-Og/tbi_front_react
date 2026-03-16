@@ -2,15 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-// Mock 记录数据（共享使用）
+// Mock 记录数据
 let records = [
   {
     id: "R001",
     patient_id: "P001",
     patient_name: "张三",
-    delicaMode: "模式A",
-    nicoletMode: "模式B",
-    gloryMode: "模式C",
+    delicaMode: "2",
+    nicoletMode: "4",
+    gloryMode: "2",
     collectDateTime: "2024-01-15 10:30:00",
     endDateTime: "2024-01-15 11:30:00",
     remark: "正常采集",
@@ -19,17 +19,14 @@ let records = [
     id: "R002",
     patient_id: "P002",
     patient_name: "李四",
-    delicaMode: "模式B",
-    nicoletMode: "模式C",
-    gloryMode: "模式A",
+    delicaMode: "2",
+    nicoletMode: "4",
+    gloryMode: "2",
     collectDateTime: "2024-01-16 14:00:00",
     endDateTime: "2024-01-16 15:00:00",
     remark: "采集顺利完成",
   },
 ];
-
-// 导出 records 供主路由使用
-export { records };
 
 // PUT - 修改记录备注
 export async function PUT(request: NextRequest) {
