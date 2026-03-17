@@ -34,7 +34,8 @@ export function useDataStream(
 
     ws.onmessage = (event) => {
       try {
-        const data = JSON.parse(event.data);
+        const data = JSON.parse(event.data).data;
+        
 
         onDataReceived();
 
