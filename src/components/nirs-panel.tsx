@@ -21,7 +21,7 @@ type NIRSPanelCellProps = {
   side: string;
   label: string;
   channelKey: string;
-  dataBuffer: Map<string, number[]>;
+  dataBuffer: Map<string, { value: number; timestamp: number }[]>;
   bl?: string;
   isRunning?: boolean;
 };
@@ -77,23 +77,23 @@ function NIRSPanelCell({
         const values = [...buffer];
         dataBuffer.set(channelKey, []); // 消费数据
 
-        for (const value of values) {
-          const pointNow = performance.now();
-          let elapsed = pointNow - cycleData.cycleStartTime;
+        for (const item of values) {
+          const { value, timestamp } = item;
+          let elapsed = timestamp - cycleData.cycleStartTime;
           
           // 1s 节流更新右侧数值
-          if (pointNow - lastValueUpdateRef.current > 1000) {
+          if (timestamp - lastValueUpdateRef.current > 1000) {
             if (rso2TextRef.current) {
               rso2TextRef.current.textContent = Number(value).toFixed(0);
             }
-            lastValueUpdateRef.current = pointNow;
+            lastValueUpdateRef.current = timestamp;
           }
 
           // 周期复位逻辑
           if (elapsed >= MS_PER_CYCLE) {
             cycleData.prevCyclePoints = cycleData.currentCyclePoints;
             cycleData.currentCyclePoints = [];
-            cycleData.cycleStartTime = pointNow;
+            cycleData.cycleStartTime = timestamp;
             elapsed = 0;
           }
           cycleData.currentCyclePoints.push({ elapsed, y: getY(value) });

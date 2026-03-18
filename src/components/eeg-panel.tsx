@@ -73,7 +73,7 @@ function RoseChart({ data }: { data: number[] }) {
 interface EEGPanelCellProps {
   channelLabel: string;
   channelKey: string;
-  dataBuffer: Map<string, any[]>;
+  dataBuffer: Map<string, { value: number; timestamp: number }[]>;
   isRunning: boolean;
   rbpData?: Record<string, number[]>;
 }
@@ -125,8 +125,9 @@ function EEGPanelCell({
         const values = [...buffer];
         dataBuffer.set(channelKey, []);
 
-        for (const value of values) {
-          const pointNow = performance.now();
+        for (const item of values) {
+          const { value, timestamp } = item;
+          const pointNow = timestamp || performance.now();
           let elapsed = pointNow - cycleData.cycleStartTime;
 
           const centerY = chartHeight / 2;
@@ -256,8 +257,12 @@ function EEGPanelCell({
 
 interface EEGCardProps {
   isRunning: boolean;
-  dataBuffer: Map<string, any[]>;
+  dataBuffer: Map<string, { value: number; timestamp: number }[]>;
   rbpData?: Record<string, number[]>;
+  // 回放模式 props
+  isPlayback?: boolean;
+  playbackData?: { time: number; value: number }[];
+  currentTime?: number;
 }
 
 export function EEGCard1({ isRunning, dataBuffer, rbpData }: EEGCardProps) {

@@ -1,5 +1,10 @@
 import { useMemo } from "react";
 
-export function useDataBuffer() {
-  return useMemo(() => new Map<string, any[]>(), []);
+export type DataPoint = {
+  value: number;
+  timestamp: number;
+};
+
+export function useDataBuffer(): Map<string, DataPoint[]> {
+  return useMemo(() => new Map<string, DataPoint[]>(), []);
 }

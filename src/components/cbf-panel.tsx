@@ -29,7 +29,7 @@ const MS_PER_CYCLE = TOTAL_SECONDS * 1000;
 type CBFPanelCellProps = {
   channelLabel: string;
   channelPrefix: string; // 如 "one-1" 或 "two-1"
-  dataBuffer: Map<string, any[]>;
+  dataBuffer: Map<string, { value: number; timestamp: number; [key: string]: any }[]>;
   isRunning?: boolean;
 };
 
@@ -76,24 +76,25 @@ function CBFPanelCell({
         dataBuffer.set(channelPrefix, []); // 消费数据
 
         for (const dataObj of dataBatch) {
-          const pointNow = performance.now();
+          const { timestamp, ...rest } = dataObj;
+          const pointNow = timestamp || performance.now();
           let elapsed = pointNow - cycleData.cycleStartTime;
 
           // --- 1秒节流更新底部 6 个数值 ---
           if (pointNow - lastValueUpdateRef.current > 1000) {
             const m = metricRefs.current;
             // 批量更新文本节点
-            if (m[0]) m[0].textContent = Number(dataObj[`${channelPrefix}_Peak_U`]).toFixed(1);
-            if (m[1]) m[1].textContent = Number(dataObj[`${channelPrefix}_Mean_U`]).toFixed(1);
-            if (m[2]) m[2].textContent = Number(dataObj[`${channelPrefix}_PI_U`]).toFixed(2);
-            if (m[3]) m[3].textContent = Number(dataObj[`${channelPrefix}_RI_U`]).toFixed(2);
-            if (m[4]) m[4].textContent = Number(dataObj[`${channelPrefix}_S/D_U`]).toFixed(2);
-            if (m[5]) m[5].textContent = Number(dataObj[`${channelPrefix}_Dias_U`]).toFixed(1);
+            if (m[0]) m[0].textContent = Number(rest[`${channelPrefix}_Peak_U`]).toFixed(1);
+            if (m[1]) m[1].textContent = Number(rest[`${channelPrefix}_Mean_U`]).toFixed(1);
+            if (m[2]) m[2].textContent = Number(rest[`${channelPrefix}_PI_U`]).toFixed(2);
+            if (m[3]) m[3].textContent = Number(rest[`${channelPrefix}_RI_U`]).toFixed(2);
+            if (m[4]) m[4].textContent = Number(rest[`${channelPrefix}_S/D_U`]).toFixed(2);
+            if (m[5]) m[5].textContent = Number(rest[`${channelPrefix}_Dias_U`]).toFixed(1);
             lastValueUpdateRef.current = pointNow;
           }
 
           // 波形渲染：使用 Env 曲线
-          const envVal = dataObj[`${channelPrefix}_Env_U`] || 0;
+          const envVal = rest[`${channelPrefix}_Env_U`] || 0;
           const y = getYPos(envVal);
 
           // 周期复位逻辑
