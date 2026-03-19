@@ -258,11 +258,7 @@ function EEGPanelCell({
 interface EEGCardProps {
   isRunning: boolean;
   dataBuffer: Map<string, { value: number; timestamp: number }[]>;
-  rbpData?: Record<string, number[]>;
-  // 回放模式 props
-  isPlayback?: boolean;
-  playbackData?: { time: number; value: number }[];
-  currentTime?: number;
+  rbpData?: Record<string, number[]>; 
 }
 
 export function EEGCard1({ isRunning, dataBuffer, rbpData }: EEGCardProps) {

@@ -52,24 +52,18 @@ export function useDataStream(
         // 第五步：触发外部回调：通知组件「新数据到了」（比如更新图表）
         onDataReceived();
 
-        // 第六步：处理 EEG 数据（WebSocket key -> buffer key 映射）
-        const eegKeyMap: Record<string, string> = {
-          'EEGData_F3_Ref': 'eeg_1',
-          'EEGData_F4_Ref': 'eeg_2',
-          'EEGData_P3_Ref': 'eeg_3',
-          'EEGData_P4_Ref': 'eeg_4',
-        };
-        // 第七步：处理 EEG 数据（WebSocket key -> buffer key 映射）
+        // 第六步：处理 EEG 数据
+        // 第七步：处理 EEG 数据
         // 优先使用后端返回的 time 字段，否则降级使用前端时间
         const timestamp = data.eeg?.time || data.yldl?.time || data.dlk?.time || performance.now();
         if (data.eeg) {
-          Object.entries(data.eeg).forEach(([wsKey, value]) => {
-            if (wsKey === 'time') return; // 跳过 time 字段
-            const bufferKey = eegKeyMap[wsKey] || wsKey;
-            if (!dataBuffer.has(bufferKey)) {
-              dataBuffer.set(bufferKey, []);
+          Object.entries(data.eeg).forEach(([key, value]) => {
+            if (key === 'time') return; // 跳过 time 字段
+            // 直接使用原始 key（如 EEGData_F3_Ref）
+            if (!dataBuffer.has(key)) {
+              dataBuffer.set(key, []);
             }
-            dataBuffer.get(bufferKey)?.push({ value: value as number, timestamp });
+            dataBuffer.get(key)?.push({ value: value as number, timestamp });
           });
         }
 
