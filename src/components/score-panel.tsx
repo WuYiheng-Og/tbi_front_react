@@ -7,7 +7,7 @@ import { useEarlyWarningFetcher, Scores } from "@/hooks/use-early-warning-fetche
 
 interface ScorePanelProps {
   isRunning: boolean;
-  onDataReceived?: () => void;
+  onDataReceived?: (isFirstData: boolean) => void;
   recordId?: string;
   alertWeights?: {
     ngl: string;
@@ -33,7 +33,7 @@ export function ScorePanel({ isRunning, onDataReceived, recordId, alertWeights }
   useEffect(() => {
     setOnDataReceived(() => {
       setInternalHasFirstData(true);
-      onDataReceived?.();
+      onDataReceived?.(false);
     });
   }, [setOnDataReceived, onDataReceived]);
 

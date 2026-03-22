@@ -26,7 +26,10 @@ export default function Home() {
   const dataBuffer = useDataBuffer();
   const rbpData = useRBPFetcher(isRunning, recordId || undefined);
   
-  const handleDataReceived = useCallback(() => {
+  const handleDataReceived = useCallback((isFirstData: boolean) => {
+    if (isFirstData) {
+      setElapsedTime(0);
+    }
     setHasReceivedData(true);
   }, []);
   
@@ -126,7 +129,7 @@ export default function Home() {
               <PatientBadge summary={patient} />
               <ScorePanel 
                 isRunning={isRunning} 
-                onDataReceived={handleDataReceived} 
+                onDataReceived={() => handleDataReceived(false)} 
                 recordId={recordId}
                 alertWeights={patient.alertWeights}
               />

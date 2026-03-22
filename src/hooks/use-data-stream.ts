@@ -9,11 +9,12 @@ interface DataBuffer {
 export function useDataStream(
   isRunning: boolean,
   dataBuffer: DataBuffer,
-  onDataReceived: () => void,
+  onDataReceived: (isFirstData: boolean) => void,
   uuid?: string,
   channelNum?: number
 ) {
   const wsRef = useRef<WebSocket | null>(null);
+  const hasReceivedDataRef = useRef(false);
 
     const connect = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -26,6 +27,7 @@ export function useDataStream(
 
     ws.onopen = () => {
       console.log("WebSocket connected");
+      hasReceivedDataRef.current = false;
       // 发送连接参数
       if (uuid && channelNum) {
         ws.send(JSON.stringify({ uuid, channel_num: channelNum }));
@@ -35,9 +37,13 @@ export function useDataStream(
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data).data;
-        
 
-        onDataReceived();
+        const isFirstData = !hasReceivedDataRef.current;
+        if (isFirstData) {
+          hasReceivedDataRef.current = true;
+        }
+
+        onDataReceived(isFirstData);
 
         if (data.eeg) {
           Object.entries(data.eeg).forEach(([key, value]) => {
