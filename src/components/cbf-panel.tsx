@@ -187,13 +187,31 @@ function CBFPanelCell({
           <line x1="0" y1="0" x2={SVG_WIDTH} y2="0" stroke={BORDER_COLOR} />
           {metricsLabels.map((label, i) => {
             const itemWidth = SVG_WIDTH / 6;
+            const centerX = itemWidth / 2;
             return (
               <g key={label} transform={`translate(${i * itemWidth}, 0)`}>
                 {i > 0 && <line x1="0" y1="15" x2="0" y2={BOTTOM_H - 15} stroke={BORDER_COLOR} />}
-                <text x="15" y={BOTTOM_H / 2} fill={LABEL_COLOR} fontSize="15" dominantBaseline="middle">{label}</text>
+                <text 
+                  x={centerX-40} 
+                  y={BOTTOM_H / 2} 
+                  fill={LABEL_COLOR} 
+                  fontSize="18" 
+                  fontFamily="monospace" 
+                  textAnchor="middle" 
+                  dominantBaseline="middle"
+                >
+                  {label}:
+                </text>
                 <text 
                   ref={el => { metricRefs.current[i] = el; }} 
-                  x={itemWidth - 30} y={BOTTOM_H / 2+5} fill={VALUE_COLOR} fontSize="15" fontWeight="bold" fontFamily="monospace" textAnchor="end" dominantBaseline="auto"
+                  x={centerX + 10} 
+                  y={BOTTOM_H / 2} 
+                  fill={VALUE_COLOR} 
+                  fontSize="20" 
+                  fontWeight="bold" 
+                  fontFamily="monospace" 
+                  textAnchor="start" 
+                  dominantBaseline="middle"
                 >
                   ---
                 </text>

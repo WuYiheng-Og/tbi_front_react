@@ -229,10 +229,10 @@ function EEGPanelCell({
               const col = i % 2;
               const x = col * itemWidth + 10;
               const y = row * 20 + 20;
-              const displayValue = channelRBP[i] !== undefined ? channelRBP[i].toFixed(1) : "0.0";
+              const displayValue = channelRBP[i] !== undefined ? channelRBP[i].toFixed(2) : "0.00";
               return (
                 <text key={item.name} x={x} y={y} fill={item.color} fontSize="15" fontFamily="monospace">
-                  {item.name}: {displayValue}%
+                  {item.name}: {displayValue}
                 </text>
               );
             })}
