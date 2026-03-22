@@ -48,22 +48,18 @@ export function generateRBPData() {
   };
 
   return {
-    data: {
-      hasData: true,
       date: [startTimestamp, endTimestamp],
       RBPData_F3_Ref: generateArray(),
       RBPData_P3_Ref: generateArray(),
       RBPData_F4_Ref: generateArray(),
       RBPData_P4_Ref: generateArray(),
-    },
   };
 }
 
 export function generateScoresData() {
   const now = Date.now();
 
-  return {
-    data: {
+  return { 
       time: [now - 15000, now] as [number, number],
       ngl: parseFloat((Math.random() * 40 + 60).toFixed(2)),
       dlk: parseFloat((Math.random() * 40 + 60).toFixed(2)),
@@ -73,7 +69,6 @@ export function generateScoresData() {
       deep_learning_num0: Math.floor(Math.random() * 100),
       xgb_num1: Math.floor(Math.random() * 100),
       xgb_num0: Math.floor(Math.random() * 100),
-      total_score_new: parseFloat((Math.random() * 40 + 60).toFixed(2)),
-    },
+      total_score_new: parseFloat((Math.random() * 40 + 60).toFixed(2)), 
   };
 }
