@@ -30,7 +30,12 @@ function startBeikeBroadcasting() {
 
     beikeClients.forEach((client) => {
       if (client.ws.readyState === WebSocket.OPEN) {
-        client.ws.send(message);
+        // 模拟网络延迟
+        // setTimeout(() => {
+        //   client.ws.send(message);
+        // }, 1000);
+          client.ws.send(message);
+
       }
     });
   }, BEIKE_INTERVAL);

@@ -48,7 +48,7 @@ function NIRSPanelCell({
   const cycleDataRef = useRef({
     currentCyclePoints: [] as { elapsed: number; y: number }[],
     prevCyclePoints: [] as { elapsed: number; y: number }[],
-    cycleStartTime: 0,
+    cycleStartTime: performance.now(),
   });
 
   const getY = (val: number) => (1 - val / 100) * SVG_HEIGHT;
@@ -59,19 +59,16 @@ function NIRSPanelCell({
     if (!isRunning) return;
 
     console.log(`[${channelKey}] 启动动画循环`);
-    
-    // 每次启动或重启时，重置时间戳（等待第一个数据点）
-    cycleDataRef.current.cycleStartTime = 0;
+
+    // 每次启动或重启时，重置时间戳
     const cycleData = cycleDataRef.current;
+    cycleData.cycleStartTime = 0;
 
     let requestID: number;
 
     const animate = () => {
       // 检查数据缓冲区
       const buffer = dataBuffer.get(channelKey);
-      
-      // 注意：这里我们不再在这里检测 isRunningRef.current 并 return 
-      // 而是完全依赖 requestAnimationFrame 的取消机制
 
       if (buffer && buffer.length > 0) {
         const values = [...buffer];
@@ -79,12 +76,16 @@ function NIRSPanelCell({
 
         for (const value of values) {
           const pointNow = performance.now();
-          // 如果还没有开始计时，则从当前时刻开始
+          let elapsed: number;
+
+          // 第一个数据点：从 0 开始计时
           if (cycleData.cycleStartTime === 0) {
             cycleData.cycleStartTime = pointNow;
+            elapsed = 0;
+          } else {
+            elapsed = pointNow - cycleData.cycleStartTime;
           }
-          let elapsed = pointNow - cycleData.cycleStartTime;
-          
+
           // 1s 节流更新右侧数值
           if (pointNow - lastValueUpdateRef.current > 1000) {
             if (rso2TextRef.current) {
@@ -98,6 +99,7 @@ function NIRSPanelCell({
             cycleData.prevCyclePoints = cycleData.currentCyclePoints;
             cycleData.currentCyclePoints = [];
             cycleData.cycleStartTime = pointNow;
+            elapsed = 0;
           }
           cycleData.currentCyclePoints.push({ elapsed, y: getY(value) });
         }

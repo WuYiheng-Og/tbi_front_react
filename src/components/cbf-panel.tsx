@@ -64,8 +64,8 @@ function CBFPanelCell({
     if (!isRunning) return;
 
     console.log(`[CBF-${channelPrefix}] 启动动画循环`);
-    cycleDataRef.current.cycleStartTime = 0;
     const cycleData = cycleDataRef.current;
+    cycleData.cycleStartTime = 0;
     let requestID: number;
 
     const animate = () => {
@@ -77,11 +77,15 @@ function CBFPanelCell({
 
         for (const dataObj of dataBatch) {
           const pointNow = performance.now();
-          // 如果还没有开始计时，则从当前时刻开始
+          let elapsed: number;
+
+          // 第一个数据点：从 0 开始计时
           if (cycleData.cycleStartTime === 0) {
             cycleData.cycleStartTime = pointNow;
+            elapsed = 0;
+          } else {
+            elapsed = pointNow - cycleData.cycleStartTime;
           }
-          let elapsed = pointNow - cycleData.cycleStartTime;
 
           // --- 1秒节流更新底部 6 个数值 ---
           if (pointNow - lastValueUpdateRef.current > 1000) {

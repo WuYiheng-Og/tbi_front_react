@@ -127,11 +127,15 @@ function EEGPanelCell({
 
         for (const value of values) {
           const pointNow = performance.now();
-          // 如果还没有开始计时，则从当前时刻开始
+          let elapsed: number;
+
+          // 第一个数据点：从 0 开始计时
           if (cycleData.cycleStartTime === 0) {
             cycleData.cycleStartTime = pointNow;
+            elapsed = 0;
+          } else {
+            elapsed = pointNow - cycleData.cycleStartTime;
           }
-          let elapsed = pointNow - cycleData.cycleStartTime;
 
           const centerY = chartHeight / 2;
           const normalizedValue = Math.max(-1, Math.min(1, value / 100));
@@ -141,6 +145,7 @@ function EEGPanelCell({
             cycleData.prevCyclePoints = cycleData.currentCyclePoints;
             cycleData.currentCyclePoints = [];
             cycleData.cycleStartTime = pointNow;
+            elapsed = 0;
           }
 
           cycleData.currentCyclePoints.push({ elapsed, y });
