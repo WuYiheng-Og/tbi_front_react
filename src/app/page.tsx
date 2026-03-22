@@ -9,6 +9,7 @@ import { CBFCard1, CBFCard2 } from "../components/cbf-panel";
 import { PatientBadge } from "../components/patient-badge";
 import { ControlPanel } from "../components/control-panel";
 import { PredictionDialog } from "../components/prediction-dialog";
+import { StopResultDialog } from "../components/stop-result-dialog";
 import { useDataBuffer } from "../hooks/use-data-buffer";
 import { useDataStream } from "../hooks/use-data-stream";
 import { useRBPFetcher } from "../hooks/use-rbp-fetcher";
@@ -22,6 +23,8 @@ export default function Home() {
   const [patientUuid, setPatientUuid] = useState("mock-patient-uuid-12345");
   const [recordId, setRecordId] = useState<string>("");
   const [isStarting, setIsStarting] = useState(false);
+  const [stopResultOpen, setStopResultOpen] = useState(false);
+  const [stopResult, setStopResult] = useState<{ state: 0 | 1; message: string } | null>(null);
 
   const dataBuffer = useDataBuffer();
   const rbpData = useRBPFetcher(isRunning, recordId || undefined);
@@ -101,19 +104,41 @@ export default function Home() {
       return;
     }
 
+    // 显示加载状态
+    setStopResult(null);
+    setStopResultOpen(true);
+
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/stop`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/stop`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ record_id: recordId }),
       });
-      console.log("Stopped collection");
+
+      const result = await response.json();
+      console.log("Stop result:", result);
+
+      // 显示结果
+      setStopResult({ state: result.state, message: result.msg });
     } catch (error) {
       console.error("Failed to stop collection:", error);
+      setStopResult({ state: 0, message: "网络请求失败" });
     } finally {
       setIsRunning(false);
       setRecordId("");
     }
+  };
+
+  const handleStopResultClose = () => {
+    setStopResultOpen(false);
+    setStopResult(null);
+  };
+
+  const handleStopResultReload = () => {
+    setStopResultOpen(false);
+    setStopResult(null);
+    // 刷新页面重新开始
+    window.location.reload();
   };
 
   const handlePredict = () => {
@@ -179,6 +204,14 @@ export default function Home() {
         uuid={patientUuid}
         open={predictionOpen}
         onOpenChange={setPredictionOpen}
+      />
+
+      <StopResultDialog
+        open={stopResultOpen}
+        state={stopResult?.state ?? null}
+        message={stopResult?.message ?? ""}
+        onClose={handleStopResultClose}
+        onReload={handleStopResultReload}
       />
     </div>
   );
