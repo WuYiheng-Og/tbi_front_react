@@ -82,7 +82,7 @@ export function useEarlyWarningFetcher(isRunning: boolean, params?: EarlyWarning
       ws.onmessage = (event) => {
         try {
           const json = JSON.parse(event.data);
-          if (json.data) {
+          if (json.time) {
             if (!hasFirstDataRef.current) {
               hasFirstDataRef.current = true;
               setHasFirstData(true);
@@ -90,15 +90,15 @@ export function useEarlyWarningFetcher(isRunning: boolean, params?: EarlyWarning
             }
 
             const newScores: Scores = {
-              ngl: typeof json.data.ngl === "number" ? json.data.ngl : 0,
-              dlk: typeof json.data.dlk === "number" ? json.data.dlk : 0,
-              yldl: typeof json.data.yldl === "number" ? json.data.yldl : 0,
-              total_score_new: typeof json.data.total_score_new === "number" ? json.data.total_score_new : 0,
-              time: json.data.time,
-              deep_learning_num1: json.data.deep_learning_num1 ?? 0,
-              deep_learning_num0: json.data.deep_learning_num0 ?? 0,
-              xgb_num1: json.data.xgb_num1 ?? 0,
-              xgb_num0: json.data.xgb_num0 ?? 0,
+              ngl: typeof json.ngl === "number" ? json.ngl : 0,
+              dlk: typeof json.dlk === "number" ? json.dlk : 0,
+              yldl: typeof json.yldl === "number" ? json.yldl : 0,
+              total_score_new: typeof json.total_score_new === "number" ? json.total_score_new : 0,
+              time: json.time,
+              deep_learning_num1: json.deep_learning_num1 ?? 0,
+              deep_learning_num0: json.deep_learning_num0 ?? 0,
+              xgb_num1: json.xgb_num1 ?? 0,
+              xgb_num0: json.xgb_num0 ?? 0,
             };
             setScores(newScores);
           }

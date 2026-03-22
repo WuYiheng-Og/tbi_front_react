@@ -63,17 +63,15 @@ export function generateScoresData() {
   const now = Date.now();
 
   return {
-    data: {
-      time: [now - 15000, now] as [number, number],
-      ngl: parseFloat((Math.random() * 40 + 60).toFixed(2)),
-      dlk: parseFloat((Math.random() * 40 + 60).toFixed(2)),
-      yldl: parseFloat((Math.random() * 40 + 60).toFixed(2)),
-      sum: parseFloat((Math.random() * 40 + 60).toFixed(2)),
-      deep_learning_num1: Math.floor(Math.random() * 100),
-      deep_learning_num0: Math.floor(Math.random() * 100),
-      xgb_num1: Math.floor(Math.random() * 100),
-      xgb_num0: Math.floor(Math.random() * 100),
-      total_score_new: parseFloat((Math.random() * 40 + 60).toFixed(2)),
-    },
+    time: [now - 15000, now] as [number, number],
+    ngl: parseFloat((Math.random() * 40 + 60).toFixed(2)),
+    dlk: parseFloat((Math.random() * 40 + 60).toFixed(2)),
+    yldl: parseFloat((Math.random() * 40 + 60).toFixed(2)),
+    sum: parseFloat((Math.random() * 40 + 60).toFixed(2)),
+    deep_learning_num1: Math.floor(Math.random() * 100),
+    deep_learning_num0: Math.floor(Math.random() * 100),
+    xgb_num1: Math.floor(Math.random() * 100),
+    xgb_num0: Math.floor(Math.random() * 100),
+    total_score_new: parseFloat((Math.random() * 40 + 60).toFixed(2)),
   };
 }
