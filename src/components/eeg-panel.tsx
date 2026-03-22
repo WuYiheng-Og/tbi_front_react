@@ -94,7 +94,7 @@ function EEGPanelCell({
   const cycleDataRef = useRef({
     currentCyclePoints: [] as { elapsed: number; y: number }[],
     prevCyclePoints: [] as { elapsed: number; y: number }[],
-    cycleStartTime: performance.now(),
+    cycleStartTime: 0,
   });
 
   const chartWidth = SVG_WIDTH - MARGIN.left - MARGIN.right - DASHBOARD.width - DASHBOARD.left;
@@ -114,7 +114,7 @@ function EEGPanelCell({
     if (!isRunning) return;
 
     const cycleData = cycleDataRef.current;
-    cycleData.cycleStartTime = performance.now();
+    cycleData.cycleStartTime = 0;
 
     let requestID: number;
 
@@ -127,6 +127,10 @@ function EEGPanelCell({
 
         for (const value of values) {
           const pointNow = performance.now();
+          // 如果还没有开始计时，则从当前时刻开始
+          if (cycleData.cycleStartTime === 0) {
+            cycleData.cycleStartTime = pointNow;
+          }
           let elapsed = pointNow - cycleData.cycleStartTime;
 
           const centerY = chartHeight / 2;
@@ -137,7 +141,6 @@ function EEGPanelCell({
             cycleData.prevCyclePoints = cycleData.currentCyclePoints;
             cycleData.currentCyclePoints = [];
             cycleData.cycleStartTime = pointNow;
-            elapsed = 0;
           }
 
           cycleData.currentCyclePoints.push({ elapsed, y });
@@ -145,7 +148,9 @@ function EEGPanelCell({
       }
 
       const now = performance.now();
-      const currentElapsed = now - cycleData.cycleStartTime;
+      const currentElapsed = cycleData.cycleStartTime > 0
+        ? now - cycleData.cycleStartTime
+        : 0;
 
       if (oldPathRef.current && cycleData.prevCyclePoints.length >= 2) {
         const visiblePrev = cycleData.prevCyclePoints.filter(p => p.elapsed >= currentElapsed);

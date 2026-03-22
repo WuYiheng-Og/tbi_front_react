@@ -52,7 +52,7 @@ function CBFPanelCell({
   const cycleDataRef = useRef({
     currentCyclePoints: [] as { elapsed: number; y: number }[],
     prevCyclePoints: [] as { elapsed: number; y: number }[],
-    cycleStartTime: performance.now(),
+    cycleStartTime: 0,
   });
 
   const getYPos = (val: number) => {
@@ -64,7 +64,7 @@ function CBFPanelCell({
     if (!isRunning) return;
 
     console.log(`[CBF-${channelPrefix}] 启动动画循环`);
-    cycleDataRef.current.cycleStartTime = performance.now();
+    cycleDataRef.current.cycleStartTime = 0;
     const cycleData = cycleDataRef.current;
     let requestID: number;
 
@@ -77,6 +77,10 @@ function CBFPanelCell({
 
         for (const dataObj of dataBatch) {
           const pointNow = performance.now();
+          // 如果还没有开始计时，则从当前时刻开始
+          if (cycleData.cycleStartTime === 0) {
+            cycleData.cycleStartTime = pointNow;
+          }
           let elapsed = pointNow - cycleData.cycleStartTime;
 
           // --- 1秒节流更新底部 6 个数值 ---
@@ -108,7 +112,9 @@ function CBFPanelCell({
       }
 
       const now = performance.now();
-      const currentElapsed = now - cycleData.cycleStartTime;
+      const currentElapsed = cycleData.cycleStartTime > 0
+        ? now - cycleData.cycleStartTime
+        : 0;
 
       // 绘制旧路径 (擦除逻辑)
       if (oldPathRef.current && cycleData.prevCyclePoints.length >= 2) {

@@ -282,10 +282,7 @@ export function PredictionDialog({ uuid, open, onOpenChange }: PredictionDialogP
             <div className="space-y-6">
               {/* 预测结果标题 */}
               <div className="text-center">
-                <h3 className="text-lg font-medium text-[#fff8e1]">预测结果</h3>
-                <p className="mt-1 text-sm text-[#fff8e1]/60">
-                  请医生对预测结果进行审核与反馈
-                </p>
+                <h3 className="text-lg font-medium text-[#fff8e1]">预测结果</h3> 
               </div>
 
               {/* 预测时间点卡片 */}

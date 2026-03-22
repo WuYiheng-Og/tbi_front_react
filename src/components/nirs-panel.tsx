@@ -48,7 +48,7 @@ function NIRSPanelCell({
   const cycleDataRef = useRef({
     currentCyclePoints: [] as { elapsed: number; y: number }[],
     prevCyclePoints: [] as { elapsed: number; y: number }[],
-    cycleStartTime: performance.now(),
+    cycleStartTime: 0,
   });
 
   const getY = (val: number) => (1 - val / 100) * SVG_HEIGHT;
@@ -60,8 +60,8 @@ function NIRSPanelCell({
 
     console.log(`[${channelKey}] 启动动画循环`);
     
-    // 每次启动或重启时，重置时间戳防止波形跳变
-    cycleDataRef.current.cycleStartTime = performance.now();
+    // 每次启动或重启时，重置时间戳（等待第一个数据点）
+    cycleDataRef.current.cycleStartTime = 0;
     const cycleData = cycleDataRef.current;
 
     let requestID: number;
@@ -79,6 +79,10 @@ function NIRSPanelCell({
 
         for (const value of values) {
           const pointNow = performance.now();
+          // 如果还没有开始计时，则从当前时刻开始
+          if (cycleData.cycleStartTime === 0) {
+            cycleData.cycleStartTime = pointNow;
+          }
           let elapsed = pointNow - cycleData.cycleStartTime;
           
           // 1s 节流更新右侧数值
@@ -94,7 +98,6 @@ function NIRSPanelCell({
             cycleData.prevCyclePoints = cycleData.currentCyclePoints;
             cycleData.currentCyclePoints = [];
             cycleData.cycleStartTime = pointNow;
-            elapsed = 0;
           }
           cycleData.currentCyclePoints.push({ elapsed, y: getY(value) });
         }
@@ -102,7 +105,9 @@ function NIRSPanelCell({
 
       // 绘制逻辑
       const now = performance.now();
-      const currentElapsed = now - cycleData.cycleStartTime;
+      const currentElapsed = cycleData.cycleStartTime > 0
+        ? now - cycleData.cycleStartTime
+        : 0;
 
       if (oldPathRef.current && cycleData.prevCyclePoints.length >= 2) {
         const visiblePrev = cycleData.prevCyclePoints.filter(p => p.elapsed >= currentElapsed);
