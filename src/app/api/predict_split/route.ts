@@ -10,11 +10,17 @@ export async function POST(request: Request) {
   await new Promise((resolve) => setTimeout(resolve, 1500));
 
   // Mock 预测结果
-  const mockResponse = {
+  const mockResponseSuccess = {
     state: 1,
     data: ["清醒", "清醒", "昏迷"],
     message: "预测成功",
   };
 
-  return NextResponse.json(mockResponse);
+ const mockResponseError = {
+  state: 0,
+  data: ["", "", ""],
+  message: "预测失败",
+};
+
+  return NextResponse.json(mockResponseError);
 }

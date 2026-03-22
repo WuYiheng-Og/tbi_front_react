@@ -19,7 +19,7 @@ export default function Home() {
   const [hasReceivedData, setHasReceivedData] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [predictionOpen, setPredictionOpen] = useState(false);
-  const [patientUuid] = useState("mock-patient-uuid-12345");
+  const [patientUuid, setPatientUuid] = useState("mock-patient-uuid-12345");
   const [recordId, setRecordId] = useState<string>("");
   const [isStarting, setIsStarting] = useState(false);
 
@@ -85,6 +85,7 @@ export default function Home() {
 
       // 先设置 recordId，然后通过 useEffect 设置 isRunning
       setRecordId(newRecordId);
+      setPatientUuid(newRecordId);
       setIsStarting(true);
     } catch (error) {
       console.error("Failed to start collection:", error);

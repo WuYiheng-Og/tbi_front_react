@@ -76,7 +76,7 @@ tbi-front/
 │   │   │   ├── records/      # 记录管理 API
 │   │   │   ├── start/        # 开始采集 API
 │   │   │   ├── stop/         # 停止采集 API
-│   │   │   ├── prediction/   # 预测分析 API
+│   │   │   ├── predict_split/   # 预测分析 API
 │   │   │   ├── feedback/     # 用户反馈 API
 │   │   │   └── register/     # 患者注册 API
 │   │   ├── record/           # 记录回放页面
@@ -147,7 +147,7 @@ tbi-front/
 
 ### 5. 预测分析模块
 
-位于 `/api/prediction` 路由：
+位于 `/api/predict_split` 路由：
 
 - 接收患者 UUID
 - 返回状态预测结果（清醒/昏迷等）
@@ -384,7 +384,7 @@ POST /api/stop
 #### 状态预测
 
 ```
-POST /api/prediction
+POST /api/predict_split
 ```
 
 请求体：

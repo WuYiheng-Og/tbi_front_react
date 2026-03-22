@@ -31,8 +31,9 @@ type PredictionDialogProps = {
 };
 
 export function PredictionDialog({ uuid, open, onOpenChange }: PredictionDialogProps) {
-  const [step, setStep] = useState<"loading" | "result">("loading");
+  const [step, setStep] = useState<"loading" | "result" | "error">("loading");
   const [progress, setProgress] = useState(0);
+  const [errorMessage, setErrorMessage] = useState("");
   const [predictionResult, setPredictionResult] = useState<PredictionResult>({
     day14: "清醒",
     day30: "清醒",
@@ -59,6 +60,7 @@ export function PredictionDialog({ uuid, open, onOpenChange }: PredictionDialogP
     if (open) {
       setStep("loading");
       setProgress(0);
+      setErrorMessage("");
       setIsSubmitting(false);
       setSubmitSuccess(false);
       setFeedback([
@@ -98,29 +100,38 @@ export function PredictionDialog({ uuid, open, onOpenChange }: PredictionDialogP
     if (!open || step !== "loading" || apiStartTime === null) return;
 
     const fetchPrediction = async () => {
-      await predictAPI(uuid);
+      const success = await predictAPI(uuid);
       // API 返回后，根据实际耗时更新进度条
       const actualDuration = Date.now() - apiStartTime;
       const actualProgress = Math.min((actualDuration / 15000) * 100, 100);
       setProgress(actualProgress);
 
-      // 短暂延迟后切换到结果页面，让用户看到100%
-      setTimeout(() => {
-        setStep("result");
-      }, 1000);
+      if (success) {
+        // 短暂延迟后切换到结果页面，让用户看到100%
+        setTimeout(() => {
+          setStep("result");
+        }, 1000);
+      }
     };
 
     fetchPrediction();
   }, [open, apiStartTime]);
 
   // 预测 API
-  const predictAPI = async (patientUuid: string): Promise<void> => {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/prediction`, {
+  const predictAPI = async (patientUuid: string): Promise<boolean> => {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/predict_split`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ uuid: patientUuid }),
     });
     const mockResponse = await response.json();
+
+    // 检查错误状态
+    if (mockResponse.state === 0) {
+      setErrorMessage(mockResponse.msg || "文件出错");
+      setStep("error");
+      return false;
+    }
 
     // 更新预测结果
     setPredictionResult({
@@ -135,6 +146,7 @@ export function PredictionDialog({ uuid, open, onOpenChange }: PredictionDialogP
       { index: 1, timePoint: "30天", original: mockResponse.data[1] as PostOpStatus, approved: null, corrected: null },
       { index: 2, timePoint: "90天", original: mockResponse.data[2] as PostOpStatus, approved: null, corrected: null },
     ]);
+    return true;
   };
 
   const handleApproval = (index: number, approved: boolean) => {
@@ -452,6 +464,24 @@ export function PredictionDialog({ uuid, open, onOpenChange }: PredictionDialogP
                   提交反馈
                 </button>
               </div>
+            </div>
+          )}
+
+          {step === "error" && (
+            <div className="flex flex-col items-center justify-center py-16">
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-500/20">
+                <XCircle className="h-8 w-8 text-red-500" />
+              </div>
+              <h3 className="mb-2 text-xl font-medium text-[#fff8e1]">预测失败</h3>
+              <p className="mb-6 text-sm text-red-400">
+                {errorMessage}
+              </p>
+              <button
+                onClick={() => window.location.reload()}
+                className="rounded-full bg-[#ff7f27] px-8 py-2 text-sm font-medium text-white hover:bg-[#f49b60]"
+              >
+                重新监测
+              </button>
             </div>
           )}
 
