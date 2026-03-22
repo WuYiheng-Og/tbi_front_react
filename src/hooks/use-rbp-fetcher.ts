@@ -33,7 +33,7 @@ export function useRBPFetcher(isRunning: boolean, uuid?: string) {
       ws.onmessage = (event) => {
         try {
           const json = JSON.parse(event.data);
-          if (json.data && json.data.hasData) {
+          if (json.date) {
             const mapping: Record<string, string> = {
               "RBPData_F3_Ref": "EEGData_F3_Ref",
               "RBPData_P3_Ref": "EEGData_P3_Ref",
@@ -43,8 +43,8 @@ export function useRBPFetcher(isRunning: boolean, uuid?: string) {
 
             const mappedData: Record<string, number[]> = {};
             Object.entries(mapping).forEach(([rbpKey, eegKey]) => {
-              if (json.data[rbpKey]) {
-                mappedData[eegKey] = json.data[rbpKey].slice(0, 4);
+              if (json[rbpKey]) {
+                mappedData[eegKey] = json[rbpKey].slice(0, 4);
               }
             });
             setRbpData(mappedData);

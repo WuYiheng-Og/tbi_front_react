@@ -51,14 +51,11 @@ export function generateRBPData() {
   };
 
   return {
-    data: {
-      hasData: true,
-      date: [startTimestamp, endTimestamp],
-      RBPData_F3_Ref: generateArray(),
-      RBPData_P3_Ref: generateArray(),
-      RBPData_F4_Ref: generateArray(),
-      RBPData_P4_Ref: generateArray(),
-    },
+    date: [startTimestamp, endTimestamp],
+    RBPData_F3_Ref: generateArray(),
+    RBPData_P3_Ref: generateArray(),
+    RBPData_F4_Ref: generateArray(),
+    RBPData_P4_Ref: generateArray(),
   };
 }
 
