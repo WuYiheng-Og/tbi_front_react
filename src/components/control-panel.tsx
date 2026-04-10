@@ -1,6 +1,6 @@
 "use client";
 
-import { Brain, Clock, Play, Square } from "lucide-react";
+import { Brain, Clock, Play, RefreshCw, Square } from "lucide-react";
 
 interface ControlPanelProps {
   isRunning: boolean;
@@ -57,13 +57,26 @@ export function ControlPanel({
       </div>
       <div className="flex gap-2 min-w-[140px]">
         {!isRunning && hasReceivedData ? (
-          <button
-            onClick={onPredict}
-            className="flex items-center ml-4 rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 transition-colors"
-          >
-            <Brain className="h-4 w-4" />
-            点击预测
-          </button>
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={onPredict}
+              className="flex items-center ml-4 rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 transition-colors"
+            >
+              <Brain className="h-4 w-4" />
+              点击预测
+            </button>
+            <button
+              onClick={() => {
+                if (window.confirm("确定要重新开始监测吗？")) {
+                  window.location.reload();
+                }
+              }}
+              className="flex items-center ml-4 rounded-md bg-[#ff7f27] px-4 py-2 text-white hover:bg-[#f49b60] transition-colors"
+            >
+              <RefreshCw className="h-4 w-4" />
+              重新监测
+            </button>
+          </div>
         ) : !isRunning ? (
           <button
             onClick={onStart}
