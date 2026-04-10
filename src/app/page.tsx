@@ -161,7 +161,7 @@ export default function Home() {
             </>
           )}
           {!patient && (
-            <h1 className="text-xl font-semibold text-dashboard-text">多模态可视化系统</h1>
+            <h1 className="text-xl font-semibold text-dashboard-text">脑血管病多模态监护系统</h1>
           )}
         </div>
         <div className="flex items-center justify-center gap-4">

@@ -251,7 +251,7 @@ export function PredictionDialog({ uuid, open, onOpenChange }: PredictionDialogP
       <div className="w-[90vw] max-w-[800px] rounded-lg bg-[#082a35] shadow-xl">
         {/* 头部 */}
         <div className="flex items-center justify-between border-b border-[#2d5058] px-6 py-4">
-          <h2 className="text-xl font-bold text-[#fff8e1]">术后状态预测分析</h2>
+          <h2 className="text-xl font-bold text-[#fff8e1]">预后状态预测分析</h2>
           <button
             onClick={handleClose}
             className="rounded-full p-1 text-[#fff8e1]/70 hover:bg-[#0d3540] hover:text-[#fff8e1]"
@@ -301,7 +301,7 @@ export function PredictionDialog({ uuid, open, onOpenChange }: PredictionDialogP
                     {/* 时间点标题 */}
                     <div className="mb-3 text-center">
                       <span className="text-sm font-medium text-[#fff8e1]">
-                        术后 {item.timePoint}
+                        预后 {item.timePoint}
                       </span>
                     </div>
 
